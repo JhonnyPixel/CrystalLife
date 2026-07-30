@@ -75,25 +75,37 @@ const revealHiddenMeshes = (root) => {
   });
 };
 
-const createModelLoader = (modelUrl) => {
+const getDefaultBinaryUrl = (modelUrl) => {
+  const binaryUrl = new URL(modelUrl, document.baseURI);
+
+  binaryUrl.pathname = binaryUrl.pathname.replace(
+    /\.[^./]+$/,
+    ".bin",
+  );
+  return binaryUrl.href;
+};
+
+const createModelLoader = (modelUrl, binaryUrl) => {
   const manager = new LoadingManager();
-  const binaryUrl = new URL("gemme.bin", new URL(modelUrl, document.baseURI));
+  const resolvedBinaryUrl = binaryUrl
+    ? new URL(binaryUrl, document.baseURI).href
+    : getDefaultBinaryUrl(modelUrl);
 
   manager.setURLModifier((url) =>
-    /\.bin(?:$|\?)/i.test(url) ? binaryUrl.href : url
+    /\.bin(?:$|[?#])/i.test(url) ? resolvedBinaryUrl : url
   );
 
   return new GLTFLoader(manager);
 };
 
 export class GemModelFactory {
-  constructor({ modelUrl }) {
+  constructor({ binaryUrl = null, modelUrl }) {
     if (!modelUrl) {
       throw new Error("URL modello gemma mancante.");
     }
 
     this.modelUrl = modelUrl;
-    this.loader = createModelLoader(modelUrl);
+    this.loader = createModelLoader(modelUrl, binaryUrl);
     this.template = null;
     this.templateCenter = new Vector3();
     this.templateDiameter = 1;

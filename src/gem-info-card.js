@@ -24,6 +24,19 @@ export class GemInfoCard {
     this.element
       .querySelector("[data-gem-close]")
       ?.addEventListener("click", this.close);
+    this.element.addEventListener(
+      "pointerdown",
+      this.stopSceneInteraction,
+    );
+    this.element.ownerDocument.addEventListener(
+      "pointerdown",
+      this.closeFromOutside,
+      true,
+    );
+    this.element.ownerDocument.addEventListener(
+      "keydown",
+      this.closeWithKeyboard,
+    );
   }
 
   show(module) {
@@ -63,7 +76,28 @@ export class GemInfoCard {
     const moduleIndex = this.selectedModule.index;
 
     this.hide();
-    this.onRelease(moduleIndex);
+    this.onRelease?.(moduleIndex);
+  };
+
+  closeFromOutside = (event) => {
+    if (
+      !this.selectedModule ||
+      this.element.contains(event.target)
+    ) {
+      return;
+    }
+
+    this.close();
+  };
+
+  closeWithKeyboard = (event) => {
+    if (event.key === "Escape") {
+      this.close();
+    }
+  };
+
+  stopSceneInteraction = (event) => {
+    event.stopPropagation();
   };
 
   updateOrbitLabel() {

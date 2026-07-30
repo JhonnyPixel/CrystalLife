@@ -21,7 +21,11 @@ import {
   SpriteMaterial,
   SRGBColorSpace,
 } from "verge3d";
-import { GEM_MODEL_URLS } from "./gem-assets.js";
+import {
+  GEM_ASSETS,
+  GEM_MODEL_URLS,
+} from "./gem-assets.js";
+import { FeatureOrbitPreview } from "./feature-orbit-preview.js";
 import { GemInfoCard } from "./gem-info-card.js";
 import { GemInteractionController } from "./gem-interaction.js";
 import { GemModelFactory } from "./gem-model.js";
@@ -48,6 +52,9 @@ import "./styles.css";
   const canvasElement = document.querySelector("[data-orbit-canvas]");
   const gemStatusElement = document.querySelector("[data-gem-status]");
   const gemInfoElement = document.querySelector("[data-gem-info]");
+  const featureOrbitElement = document.querySelector(
+    "[data-feature-orbit]",
+  );
   const moduleCardElements = [
     ...document.querySelectorAll("[data-module-card]"),
   ];
@@ -202,6 +209,7 @@ import "./styles.css";
 
     async loadCoreModel() {
       const factory = new GemModelFactory({
+        binaryUrl: GEM_ASSETS.center.binaryUrl,
         modelUrl: GEM_MODEL_URLS.center,
       });
 
@@ -238,6 +246,7 @@ import "./styles.css";
           cssColor: "#8b5cf6",
           color: 0x8b5cf6,
           distance: 3.2,
+          binaryUrl: GEM_ASSETS.mind.binaryUrl,
           modelUrl: GEM_MODEL_URLS.mind,
           speed: 0.48,
           size: 0.52,
@@ -249,6 +258,7 @@ import "./styles.css";
           cssColor: "#b6f34a",
           color: 0xb6f34a,
           distance: 3.9,
+          binaryUrl: GEM_ASSETS.body.binaryUrl,
           modelUrl: GEM_MODEL_URLS.body,
           speed: 0.39,
           size: 0.46,
@@ -257,9 +267,10 @@ import "./styles.css";
           name: "Disciplina",
           description:
             "Promesse mantenute, attenzione protetta e azioni che restano.",
-          cssColor: "#7c3aed",
-          color: 0x7c3aed,
+          cssColor: "#f97316",
+          color: 0xf97316,
           distance: 4.6,
+          binaryUrl: GEM_ASSETS.discipline.binaryUrl,
           modelUrl: GEM_MODEL_URLS.discipline,
           speed: 0.31,
           size: 0.41,
@@ -271,6 +282,7 @@ import "./styles.css";
           cssColor: "#ec4899",
           color: 0xec4899,
           distance: 5.3,
+          binaryUrl: GEM_ASSETS.relationships.binaryUrl,
           modelUrl: GEM_MODEL_URLS.relationships,
           speed: 0.26,
           size: 0.36,
@@ -282,6 +294,7 @@ import "./styles.css";
           cssColor: "#3b82f6",
           color: 0x3b82f6,
           distance: 6,
+          binaryUrl: GEM_ASSETS.growth.binaryUrl,
           modelUrl: GEM_MODEL_URLS.growth,
           speed: 0.21,
           size: 0.32,
@@ -374,6 +387,7 @@ import "./styles.css";
       const loadResults = await Promise.allSettled(
         this.modules.map(async (module) => {
           const factory = new GemModelFactory({
+            binaryUrl: module.definition.binaryUrl,
             modelUrl: module.definition.modelUrl,
           });
 
@@ -479,10 +493,10 @@ import "./styles.css";
         return;
       }
 
+      this.infoCard.close();
       module.isDragging = true;
       module.isStopped = false;
       module.angularVelocity = 0;
-      this.infoCard.hide();
     };
 
     dragGem = (gemIndex, angle) => {
@@ -924,5 +938,17 @@ import "./styles.css";
 
   if (moduleCardElements.length > 0) {
     new ModuleGemGallery(moduleCardElements);
+  }
+
+  if (featureOrbitElement) {
+    try {
+      new FeatureOrbitPreview(featureOrbitElement);
+    } catch (error) {
+      console.error(
+        "Impossibile inizializzare l'orbita della funzionalità.",
+        error,
+      );
+      featureOrbitElement.classList.add("is-fallback");
+    }
   }
 })();

@@ -9,15 +9,21 @@ Ogni cartella controlla una gemma:
 - `relazioni`
 - `crescita`
 
-Per cambiare una gemma:
+Per cambiare qualsiasi gemma:
 
 1. Apri il modello in Blender con l'add-on Verge3D.
 2. Esporta come Verge3D glTF.
-3. Rinomina il `.gltf` in `gemme.gltf` e il `.bin` in `gemme.bin`.
-4. Sostituisci entrambi i file nella cartella scelta.
+3. Elimina il vecchio `.gltf`/`.glb` e il relativo `.bin`.
+4. Copia il nuovo export nella cartella scelta mantenendo qualsiasi nome.
 
-Percorsi e codice restano invariati. Il loader corregge automaticamente anche
-il nome originale del `.bin` scritto dentro al file `.gltf`.
+Esempi validi:
 
-Se i file della cartella `centro` non esistono, CrystalLife usa
-automaticamente la gemma centrale geometrica integrata.
+- `sun.gltf` e `sun.bin`
+- `mind-crystal.gltf` e `mind-crystal.bin`
+- un singolo `body.glb`
+
+Mantieni un solo `.gltf` o `.glb` per cartella. Il `.bin` può avere un nome
+diverso se quel nome è già indicato dentro al `.gltf`.
+
+Vite rileva automaticamente modello e buffer di tutte le gemme. Se il modello
+centrale non esiste, CrystalLife usa la gemma geometrica integrata.

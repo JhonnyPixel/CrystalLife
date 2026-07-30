@@ -7,7 +7,7 @@ import {
   Scene,
   SRGBColorSpace,
 } from "verge3d";
-import { GEM_MODEL_URLS } from "./gem-assets.js";
+import { GEM_ASSETS } from "./gem-assets.js";
 import { GemModelFactory } from "./gem-model.js";
 
 const MODEL_SIZE = 1.05;
@@ -20,7 +20,8 @@ const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 class ModuleGemCard {
   constructor(element, prefersReducedMotion) {
     this.element = element;
-    this.modelUrl = GEM_MODEL_URLS[element.dataset.gemModel];
+    this.asset = GEM_ASSETS[element.dataset.gemModel];
+    this.modelUrl = this.asset?.modelUrl;
     this.prefersReducedMotion = prefersReducedMotion;
     this.visual = null;
     this.pointerId = null;
@@ -58,7 +59,7 @@ class ModuleGemCard {
   }
 
   async load() {
-    const factory = new GemModelFactory({ modelUrl: this.modelUrl });
+    const factory = new GemModelFactory(this.asset);
 
     await factory.load();
 

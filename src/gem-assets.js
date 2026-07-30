@@ -1,11 +1,28 @@
-const getPublicAssetUrl = (path) =>
-  `${import.meta.env.BASE_URL}${path}`;
+import discoveredGemAssets from "virtual:gem-assets";
 
-export const GEM_MODEL_URLS = Object.freeze({
-  body: getPublicAssetUrl("gems/corpo/gemme.gltf"),
-  center: getPublicAssetUrl("gems/centro/gemme.gltf"),
-  discipline: getPublicAssetUrl("gems/disciplina/gemme.gltf"),
-  growth: getPublicAssetUrl("gems/crescita/gemme.gltf"),
-  mind: getPublicAssetUrl("gems/mente/gemme.gltf"),
-  relationships: getPublicAssetUrl("gems/relazioni/gemme.gltf"),
-});
+const getPublicAssetUrl = (path) =>
+  path ? `${import.meta.env.BASE_URL}${path}` : null;
+
+const createGemAsset = ({ binaryPath, modelPath }) =>
+  Object.freeze({
+    binaryUrl: getPublicAssetUrl(binaryPath),
+    modelUrl: getPublicAssetUrl(modelPath),
+  });
+
+export const GEM_ASSETS = Object.freeze(
+  Object.fromEntries(
+    Object.entries(discoveredGemAssets).map(([key, asset]) => [
+      key,
+      createGemAsset(asset),
+    ]),
+  ),
+);
+
+export const GEM_MODEL_URLS = Object.freeze(
+  Object.fromEntries(
+    Object.entries(GEM_ASSETS).map(([key, asset]) => [
+      key,
+      asset.modelUrl,
+    ]),
+  ),
+);

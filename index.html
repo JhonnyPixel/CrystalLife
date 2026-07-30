@@ -161,7 +161,9 @@
           >
             <span class="module-card__number">03</span>
             <div class="module-card__content">
-              <span class="module-card__orb module-card__orb--purple"></span>
+              <span
+                class="module-card__orb module-card__orb--discipline"
+              ></span>
               <h3>Disciplina</h3>
               <p>Blocca il rumore. Mantieni le promesse.</p>
             </div>
@@ -193,53 +195,368 @@
         </div>
       </section>
 
-      <section class="path section-shell" aria-labelledby="path-title">
+      <section
+        class="path section-shell"
+        id="funzionalita"
+        aria-labelledby="path-title"
+      >
         <div class="section-heading">
           <div>
             <p class="section-label">Il percorso</p>
             <h2 id="path-title">Sette fasi.<br />Una direzione.</h2>
           </div>
           <p>
-            Un metodo progressivo: prima scopri cosa conta, poi costruisci una
-            vita capace di proteggerlo.
+            Ogni fase attiva uno strumento concreto. Vedi cosa fai, quando lo
+            fai e come stai cambiando.
           </p>
         </div>
 
-        <ol class="path-list">
-          <li>
-            <span>01</span>
-            <h3>Discovery &amp; significato</h3>
-            <p>Trova valori e attività che danno forma al tuo percorso.</p>
+        <ol class="feature-journey">
+          <li class="feature-step" id="fase-discovery">
+            <div class="feature-step__copy">
+              <p class="feature-step__label">
+                <span>01</span> Discovery &amp; significato
+              </p>
+              <h3>Scopri cosa ti accende davvero.</h3>
+              <p>
+                Un percorso guidato porta alla luce valori, interessi e
+                attività compatibili con la persona che vuoi costruire.
+              </p>
+              <ul>
+                <li>Valutazione iniziale delle aree della vita</li>
+                <li>Compatibilità e significato di ogni attività</li>
+              </ul>
+            </div>
+
+            <div
+              class="feature-step__visual"
+              role="img"
+              aria-label="Anteprima della scoperta guidata delle attività"
+            >
+              <div class="app-preview app-preview--discovery" aria-hidden="true">
+                <div class="app-preview__bar">
+                  <i></i>
+                  <strong>Scoperta</strong>
+                  <span>3 / 8</span>
+                </div>
+                <div class="mini-progress"><i></i></div>
+                <p class="preview-kicker">Segui l’istinto</p>
+                <h4>Quando perdi la percezione del tempo?</h4>
+                <div class="choice-grid">
+                  <span class="is-selected">Creare qualcosa</span>
+                  <span>Allenarmi o competere</span>
+                  <span>Imparare e capire</span>
+                  <span>Aiutare qualcuno</span>
+                </div>
+                <div class="insight-card">
+                  <span>Segnale iniziale</span>
+                  Potresti trovare significato nelle attività che combinano
+                  curiosità e creazione.
+                </div>
+              </div>
+            </div>
           </li>
-          <li>
-            <span>02</span>
-            <h3>Moduli della vita</h3>
-            <p>Trasforma ogni area importante in una pratica leggibile.</p>
+
+          <li class="feature-step" id="fase-moduli">
+            <div class="feature-step__copy">
+              <p class="feature-step__label">
+                <span>02</span> Moduli della vita
+              </p>
+              <h3>Trasforma la vita in un sistema leggibile.</h3>
+              <p>
+                Ogni attività trova casa in un modulo. Capisci subito cosa è
+                forte, cosa stai trascurando e dove agire.
+              </p>
+              <ul>
+                <li>Mente, Corpo, Disciplina, Relazioni e Crescita</li>
+                <li>Stato e pratiche sempre collegate al loro modulo</li>
+              </ul>
+            </div>
+
+            <div
+              class="feature-step__visual"
+              role="img"
+              aria-label="Anteprima dei moduli della vita"
+            >
+              <div class="app-preview app-preview--modules" aria-hidden="true">
+                <div class="app-preview__bar">
+                  <i></i>
+                  <strong>Il tuo percorso</strong>
+                  <span>Oggi</span>
+                </div>
+                <p class="preview-kicker">Il tuo sistema</p>
+                <h4>Ogni parte ha un posto.</h4>
+                <div class="module-preview-list">
+                  <div>
+                    <i class="module-dot module-dot--mind"></i>
+                    <span>
+                      <strong>Mente</strong><small>2 pratiche attive</small>
+                    </span>
+                    <em>In equilibrio</em>
+                  </div>
+                  <div>
+                    <i class="module-dot module-dot--body"></i>
+                    <span>
+                      <strong>Corpo</strong><small>3 pratiche attive</small>
+                    </span>
+                    <em>In crescita</em>
+                  </div>
+                  <div>
+                    <i class="module-dot module-dot--discipline"></i>
+                    <span>
+                      <strong>Disciplina</strong><small>1 sfida aperta</small>
+                    </span>
+                    <em>Da nutrire</em>
+                  </div>
+                </div>
+              </div>
+            </div>
           </li>
-          <li>
-            <span>03</span>
-            <h3>Journaling &amp; chiarezza</h3>
-            <p>Osserva pensieri e paure senza esserne guidato.</p>
+
+          <li class="feature-step" id="fase-journaling">
+            <div class="feature-step__copy">
+              <p class="feature-step__label">
+                <span>03</span> Journaling &amp; chiarezza
+              </p>
+              <h3>Metti ordine prima di reagire.</h3>
+              <p>
+                Prompt brevi trasformano pensieri sparsi in una traccia
+                concreta. Rileggi pattern, paure e progressi senza rumore.
+              </p>
+              <ul>
+                <li>Riflessione del mattino e diario della sera</li>
+                <li>Note collegate a moduli, attività e giornate</li>
+              </ul>
+            </div>
+
+            <div
+              class="feature-step__visual"
+              role="img"
+              aria-label="Anteprima del diario guidato"
+            >
+              <div class="app-preview app-preview--journal" aria-hidden="true">
+                <div class="app-preview__bar">
+                  <i></i>
+                  <strong>Diario</strong>
+                  <span>Salva</span>
+                </div>
+                <div class="journal-meta">
+                  <span>Morning Reflection</span>
+                  <time>08:00</time>
+                </div>
+                <h4>Cosa merita la tua attenzione oggi?</h4>
+                <div class="journal-sheet">
+                  <p>Proteggere il primo blocco della giornata.</p>
+                  <i></i><i></i><i></i>
+                </div>
+                <div class="journal-tags">
+                  <span>Mente</span><span>Chiarezza</span><span>Presenza</span>
+                </div>
+              </div>
+            </div>
           </li>
-          <li>
-            <span>04</span>
-            <h3>Gamification</h3>
-            <p>Rendi visibile il progresso e mantieni vivo lo slancio.</p>
+
+          <li class="feature-step" id="fase-gamification">
+            <div class="feature-step__copy">
+              <p class="feature-step__label">
+                <span>04</span> Gamification
+              </p>
+              <h3>Rendi visibile ogni passo.</h3>
+              <p>
+                La gemma evolve con te. XP, livelli e continuità danno forma al
+                progresso senza trasformarlo in pressione.
+              </p>
+              <ul>
+                <li>Core personale, livelli e prossima evoluzione</li>
+                <li>Streak e ricompense per la costanza reale</li>
+              </ul>
+            </div>
+
+            <div
+              class="feature-step__visual"
+              role="img"
+              aria-label="Anteprima di livelli, esperienza e continuità"
+            >
+              <div class="app-preview app-preview--progress" aria-hidden="true">
+                <div class="app-preview__bar">
+                  <i></i>
+                  <strong>Oggi</strong>
+                  <span>Livello 07</span>
+                </div>
+                <div class="progress-core">
+                  <div
+                    class="feature-orbit-preview"
+                    data-feature-orbit
+                  ></div>
+                  <strong>42%</strong>
+                  <span>Core</span>
+                </div>
+                <div class="level-card">
+                  <span>
+                    <strong>Costruttore</strong>
+                    <small>180 XP alla prossima evoluzione</small>
+                  </span>
+                  <em>+25 XP</em>
+                </div>
+                <div class="streak-row">
+                  <span>12 giorni di continuità</span>
+                  <div>
+                    <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                  </div>
+                </div>
+              </div>
+            </div>
           </li>
-          <li>
-            <span>05</span>
-            <h3>Dopamine blocker</h3>
-            <p>Riduci gli stimoli rapidi e riprendi il controllo del focus.</p>
+
+          <li class="feature-step" id="fase-blocker">
+            <div class="feature-step__copy">
+              <p class="feature-step__label">
+                <span>05</span> Dopamine blocker
+              </p>
+              <h3>Proteggi il focus quando serve.</h3>
+              <p>
+                Attiva uno scudo per app e siti distraenti. Il tempo torna alle
+                priorità scelte, senza affidarsi soltanto alla forza di volontà.
+              </p>
+              <ul>
+                <li>Sessioni protette con durata visibile</li>
+                <li>App e siti bloccati durante il lavoro profondo</li>
+              </ul>
+            </div>
+
+            <div
+              class="feature-step__visual"
+              role="img"
+              aria-label="Anteprima dello scudo concentrazione"
+            >
+              <div class="app-preview app-preview--blocker" aria-hidden="true">
+                <div class="app-preview__bar">
+                  <i></i>
+                  <strong>Scudo attivo</strong>
+                  <span>Disciplina</span>
+                </div>
+                <div class="shield-preview"><i></i></div>
+                <strong class="blocker-time">01:24:18</strong>
+                <p>Protezione fino alle 18:30</p>
+                <div class="focus-card">
+                  <span>Attività corrente</span>
+                  <strong>Lavoro profondo</strong>
+                </div>
+                <div class="blocked-summary">
+                  <span>7 App</span><span>3 Siti</span>
+                </div>
+              </div>
+            </div>
           </li>
-          <li>
-            <span>06</span>
-            <h3>Tempo intenzionale</h3>
-            <p>Dai uno scopo anche alle pause, senza riempire ogni vuoto.</p>
+
+          <li class="feature-step" id="fase-tempo">
+            <div class="feature-step__copy">
+              <p class="feature-step__label">
+                <span>06</span> Tempo intenzionale
+              </p>
+              <h3>Dai una funzione a ogni blocco.</h3>
+              <p>
+                La giornata diventa una sequenza leggibile di azione, focus e
+                recupero. Anche uno spazio vuoto può avere una direzione.
+              </p>
+              <ul>
+                <li>Percorso quotidiano con stato in tempo reale</li>
+                <li>Suggerimenti coerenti con energia e priorità</li>
+              </ul>
+            </div>
+
+            <div
+              class="feature-step__visual"
+              role="img"
+              aria-label="Anteprima del percorso quotidiano"
+            >
+              <div class="app-preview app-preview--timeline" aria-hidden="true">
+                <div class="app-preview__bar">
+                  <i></i>
+                  <strong>Il percorso di oggi</strong>
+                  <span>4 attività</span>
+                </div>
+                <div class="day-timeline">
+                  <div class="is-complete">
+                    <time>08:00</time><i></i>
+                    <span>
+                      <strong>Morning Reflection</strong>
+                      <small>Mente · Completato</small>
+                    </span>
+                  </div>
+                  <div class="is-active">
+                    <time>10:30</time><i></i>
+                    <span>
+                      <strong>Strength Training</strong>
+                      <small>Corpo · In corso</small>
+                    </span>
+                  </div>
+                  <div>
+                    <time>12:00</time><i></i>
+                    <span>
+                      <strong>No Fast Stimuli</strong>
+                      <small>Disciplina · In attesa</small>
+                    </span>
+                  </div>
+                  <div>
+                    <time>15:30</time><i></i>
+                    <span>
+                      <strong>Call Important Person</strong>
+                      <small>Relazioni · In attesa</small>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </li>
-          <li>
-            <span>07</span>
-            <h3>Scheduling avanzato</h3>
-            <p>Unisci abitudini, lavoro profondo e recupero in un ritmo unico.</p>
+
+          <li class="feature-step" id="fase-scheduling">
+            <div class="feature-step__copy">
+              <p class="feature-step__label">
+                <span>07</span> Scheduling avanzato
+              </p>
+              <h3>Costruisci un ritmo sostenibile.</h3>
+              <p>
+                Pianifica attività e pratiche considerando durata, frequenza,
+                energia e calendario. L’AI propone; tu mantieni il controllo.
+              </p>
+              <ul>
+                <li>Weekly preview e calendario delle attività</li>
+                <li>Orari consigliati in base a energia e impegni</li>
+              </ul>
+            </div>
+
+            <div
+              class="feature-step__visual"
+              role="img"
+              aria-label="Anteprima della pianificazione intelligente"
+            >
+              <div class="app-preview app-preview--schedule" aria-hidden="true">
+                <div class="app-preview__bar">
+                  <i></i>
+                  <strong>Pianifica attività</strong>
+                  <span>Forza</span>
+                </div>
+                <div class="schedule-metrics">
+                  <span><strong>45</strong><small>min</small></span>
+                  <span><strong>3×</strong><small>settimana</small></span>
+                  <span><strong>Media</strong><small>energia</small></span>
+                </div>
+                <div class="ai-suggestion">
+                  <span>Oggi AI suggestion</span>
+                  <strong>Mar, Gio, Sab · 18:00</strong>
+                  <p>Minore probabilità di interruzione.</p>
+                </div>
+                <div class="week-preview">
+                  <span>Lun<small>12</small></span>
+                  <span class="is-planned">Mar<small>13</small></span>
+                  <span>Mer<small>14</small></span>
+                  <span class="is-planned">Gio<small>15</small></span>
+                  <span>Ven<small>16</small></span>
+                  <span class="is-planned">Sab<small>17</small></span>
+                </div>
+              </div>
+            </div>
           </li>
         </ol>
       </section>
