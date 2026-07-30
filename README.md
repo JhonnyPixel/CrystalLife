@@ -1,6 +1,6 @@
-# OGGI
+# CrystalLife
 
-Landing page Vite con esperienza orbitale Three.js guidata dallo scroll.
+Landing page Vite con esperienza orbitale Verge3D guidata dallo scroll.
 
 ## Sviluppo
 

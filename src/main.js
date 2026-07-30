@@ -1,6 +1,9 @@
 import {
-  ACESFilmicToneMapping,
+  AdditiveBlending,
+  AgXBlenderToneMapping,
   AmbientLight,
+  App,
+  CanvasTexture,
   Color,
   DirectionalLight,
   DoubleSide,
@@ -8,28 +11,38 @@ import {
   IcosahedronGeometry,
   Mesh,
   MeshBasicMaterial,
-  MeshPhongMaterial,
+  MeshStandardMaterial,
   PCFSoftShadowMap,
   PerspectiveCamera,
-  PMREMGenerator,
   PointLight,
   RingGeometry,
   Scene,
+  Sprite,
+  SpriteMaterial,
   SRGBColorSpace,
-  WebGLRenderer,
-} from "three";
+} from "verge3d";
+import { GEM_MODEL_URLS } from "./gem-assets.js";
 import { GemInfoCard } from "./gem-info-card.js";
 import { GemInteractionController } from "./gem-interaction.js";
+import { GemModelFactory } from "./gem-model.js";
+import { ModuleGemGallery } from "./module-gem-gallery.js";
 import "./styles.css";
 
 (() => {
   "use strict";
 
+  const CORE_MODEL_SIZE = 1.76;
   const INTERACTION_START = 0.78;
+  const GEM_HINT_DURATION_SECONDS = 1.35;
+  const GEM_HINT_DELAY_MIN_SECONDS = 2.4;
+  const GEM_HINT_DELAY_MAX_SECONDS = 4.2;
   const storyElement = document.querySelector("[data-orbit-story]");
   const canvasElement = document.querySelector("[data-orbit-canvas]");
   const gemStatusElement = document.querySelector("[data-gem-status]");
   const gemInfoElement = document.querySelector("[data-gem-info]");
+  const moduleCardElements = [
+    ...document.querySelectorAll("[data-module-card]"),
+  ];
 
   if (!storyElement || !canvasElement) {
     return;
@@ -46,6 +59,44 @@ import "./styles.css";
     return progress * progress * (3 - 2 * progress);
   };
 
+  const createInteractionGlowTexture = () => {
+    const canvas = document.createElement("canvas");
+
+    canvas.width = 128;
+    canvas.height = 128;
+
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      return null;
+    }
+
+    const gradient = context.createRadialGradient(64, 64, 0, 64, 64, 64);
+
+    gradient.addColorStop(0, "rgba(255, 255, 255, 0.92)");
+    gradient.addColorStop(0.2, "rgba(255, 255, 255, 0.58)");
+    gradient.addColorStop(0.52, "rgba(255, 255, 255, 0.16)");
+    gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, 128, 128);
+
+    const texture = new CanvasTexture(canvas);
+
+    texture.colorSpace = SRGBColorSpace;
+    return texture;
+  };
+
+  const disposeRenderable = (root) => {
+    root.traverse((object) => {
+      object.geometry?.dispose();
+
+      const materials = Array.isArray(object.material)
+        ? object.material
+        : [object.material];
+      materials.filter(Boolean).forEach((material) => material.dispose());
+    });
+  };
+
   class OrbitExperience {
     constructor(container) {
       this.container = container;
@@ -57,6 +108,11 @@ import "./styles.css";
       this.prefersReducedMotion = window.matchMedia(
         "(prefers-reduced-motion: reduce)",
       ).matches;
+      this.activeHintIndex = null;
+      this.hintStartedAt = 0;
+      this.lastHintIndex = null;
+      this.nextHintAt = Number.POSITIVE_INFINITY;
+      this.interactionGlowTexture = createInteractionGlowTexture();
       this.modules = [];
       this.orbits = [];
 
@@ -66,6 +122,7 @@ import "./styles.css";
       this.createLights();
       this.createInfoCard();
       this.createInteractions();
+      void this.loadCoreModel();
       void this.loadGemModels();
       this.observeVisibility();
       this.resize();
@@ -77,64 +134,41 @@ import "./styles.css";
     createScene() {
       this.scene = new Scene();
       this.camera = new PerspectiveCamera(58, 1, 0.1, 100);
-      this.renderer = new WebGLRenderer({
+      this.app = new App(this.container, {
         alpha: true,
         antialias: true,
         powerPreference: "high-performance",
       });
+      this.app.registerServiceKeys = false;
+      this.app.scene = this.scene;
+      this.app.setCamera(this.camera);
+      this.renderer = this.app.renderer;
       this.renderer.setClearColor(0x000000, 0);
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.8));
-      this.renderer.toneMapping = ACESFilmicToneMapping;
-      this.renderer.toneMappingExposure = 1.28;
+      this.renderer.toneMapping = AgXBlenderToneMapping;
+      this.renderer.toneMappingExposure = 1;
       this.renderer.shadowMap.enabled = false;
       this.renderer.shadowMap.type = PCFSoftShadowMap;
 
       this.renderer.outputColorSpace = SRGBColorSpace;
 
-      this.container.appendChild(this.renderer.domElement);
       this.world = new Group();
       this.scene.add(this.world);
-      void this.createMaterialEnvironment();
-    }
-
-    async createMaterialEnvironment() {
-      try {
-        const { RoomEnvironment } = await import(
-          "three/addons/environments/RoomEnvironment.js"
-        );
-        const environmentScene = new RoomEnvironment();
-        const generator = new PMREMGenerator(this.renderer);
-
-        this.environmentTarget = generator.fromScene(
-          environmentScene,
-          0.04,
-        );
-        this.scene.environment = this.environmentTarget.texture;
-        this.scene.environmentIntensity = 1.12;
-
-        environmentScene.dispose();
-        generator.dispose();
-      } catch (error) {
-        console.warn(
-          "Illuminazione ambientale non disponibile.",
-          error,
-        );
-      }
     }
 
     createCore() {
       const primary = new Color(0x8b5cf6);
 
       const coreGeometry = new IcosahedronGeometry(1.48, 1);
-      const coreMaterial = new MeshPhongMaterial({
+      const coreMaterial = new MeshStandardMaterial({
         color: 0x1c1238,
         emissive: primary,
         emissiveIntensity: 0.48,
         flatShading: true,
-        shininess: 110,
+        metalness: 0.08,
+        roughness: 0.22,
       });
-      this.core = new Mesh(coreGeometry, coreMaterial);
-      this.world.add(this.core);
+      const coreBody = new Mesh(coreGeometry, coreMaterial);
 
       const shellGeometry = new IcosahedronGeometry(1.62, 2);
       const shellMaterial = new MeshBasicMaterial({
@@ -144,10 +178,41 @@ import "./styles.css";
         opacity: 0.2,
       });
       this.shell = new Mesh(shellGeometry, shellMaterial);
-      this.core.add(this.shell);
+      this.coreFallback = new Group();
+      this.coreFallback.add(coreBody, this.shell);
 
-      const coreLight = new PointLight(primary, 1.15, 7);
-      this.core.add(coreLight);
+      this.core = new Group();
+      this.core.add(this.coreFallback);
+      this.world.add(this.core);
+    }
+
+    async loadCoreModel() {
+      const factory = new GemModelFactory({
+        modelUrl: GEM_MODEL_URLS.center,
+      });
+
+      try {
+        await factory.load();
+      } catch {
+        return;
+      }
+
+      if (factory.applyEnvironment(this.scene)) {
+        this.app.updateEnvironment(this.scene.worldMaterial);
+      }
+
+      this.replaceCoreFallback(factory);
+    }
+
+    replaceCoreFallback(modelFactory) {
+      const { visual } = modelFactory.create({ size: CORE_MODEL_SIZE });
+      const fallback = this.coreFallback;
+
+      this.core.remove(fallback);
+      disposeRenderable(fallback);
+      this.core.add(visual);
+      this.coreFallback = null;
+      this.shell = null;
     }
 
     createModules() {
@@ -159,6 +224,7 @@ import "./styles.css";
           cssColor: "#8b5cf6",
           color: 0x8b5cf6,
           distance: 3.2,
+          modelUrl: GEM_MODEL_URLS.mind,
           speed: 0.48,
           size: 0.52,
         },
@@ -169,6 +235,7 @@ import "./styles.css";
           cssColor: "#b6f34a",
           color: 0xb6f34a,
           distance: 3.9,
+          modelUrl: GEM_MODEL_URLS.body,
           speed: 0.39,
           size: 0.46,
         },
@@ -179,6 +246,7 @@ import "./styles.css";
           cssColor: "#7c3aed",
           color: 0x7c3aed,
           distance: 4.6,
+          modelUrl: GEM_MODEL_URLS.discipline,
           speed: 0.31,
           size: 0.41,
         },
@@ -189,6 +257,7 @@ import "./styles.css";
           cssColor: "#ec4899",
           color: 0xec4899,
           distance: 5.3,
+          modelUrl: GEM_MODEL_URLS.relationships,
           speed: 0.26,
           size: 0.36,
         },
@@ -199,6 +268,7 @@ import "./styles.css";
           cssColor: "#3b82f6",
           color: 0x3b82f6,
           distance: 6,
+          modelUrl: GEM_MODEL_URLS.growth,
           speed: 0.21,
           size: 0.32,
         },
@@ -206,12 +276,13 @@ import "./styles.css";
 
       definitions.forEach((definition, index) => {
         const geometry = new IcosahedronGeometry(definition.size, 0);
-        const material = new MeshPhongMaterial({
+        const material = new MeshStandardMaterial({
           color: definition.color,
           emissive: definition.color,
           emissiveIntensity: 0.1,
           flatShading: true,
-          shininess: 70,
+          metalness: 0.02,
+          roughness: 0.28,
         });
         material.userData.restEmissiveIntensity = 0.1;
         material.userData.activeEmissiveIntensity = 0.72;
@@ -234,12 +305,26 @@ import "./styles.css";
         mesh.add(hitArea);
 
         const light = new PointLight(definition.color, 0.78, 3.8);
-        mesh.add(light);
+        const hintGlow = new Sprite(
+          new SpriteMaterial({
+            map: this.interactionGlowTexture,
+            color: definition.color,
+            blending: AdditiveBlending,
+            depthWrite: false,
+            opacity: 0,
+            transparent: true,
+          }),
+        );
+
+        hintGlow.scale.setScalar(definition.size * 4);
+        mesh.add(light, hintGlow);
         this.world.add(mesh);
         this.modules.push({
           index,
           mesh,
           hitArea,
+          hintGlow,
+          light,
           visual,
           visualMaterials: [material],
           definition,
@@ -269,31 +354,48 @@ import "./styles.css";
     }
 
     async loadGemModels() {
-      try {
-        const { GemModelFactory } = await import("./gem-model.js");
-        const gemModelFactory = new GemModelFactory();
+      const loadResults = await Promise.allSettled(
+        this.modules.map(async (module) => {
+          const factory = new GemModelFactory({
+            modelUrl: module.definition.modelUrl,
+          });
 
-        await gemModelFactory.load();
+          await factory.load();
+          return factory;
+        }),
+      );
+      let hasEnvironment = false;
 
-        this.modules.forEach((module) => {
-          const { materials, visual } = gemModelFactory.create(
-            module.definition,
+      loadResults.forEach((result, index) => {
+        const module = this.modules[index];
+
+        if (result.status === "rejected") {
+          console.warn(
+            `Modello Verge3D "${module.definition.name}" non disponibile.`,
+            result.reason,
           );
-          const fallback = module.visual;
+          return;
+        }
 
-          module.mesh.remove(fallback);
-          fallback.geometry.dispose();
-          fallback.material.dispose();
-          module.mesh.add(visual);
-          module.visual = visual;
-          module.visualMaterials = materials;
-        });
-      } catch (error) {
-        console.warn(
-          "Modello GLB non disponibile. Uso gemme geometriche.",
-          error,
-        );
-      }
+        if (!hasEnvironment && result.value.applyEnvironment(this.scene)) {
+          this.app.updateEnvironment(this.scene.worldMaterial);
+          hasEnvironment = true;
+        }
+
+        this.replaceGemFallback(module, result.value);
+      });
+    }
+
+    replaceGemFallback(module, modelFactory) {
+      const { materials, visual } = modelFactory.create(module.definition);
+      const fallback = module.visual;
+
+      module.mesh.remove(fallback);
+      fallback.geometry.dispose();
+      fallback.material.dispose();
+      module.mesh.add(visual);
+      module.visual = visual;
+      module.visualMaterials = materials;
     }
 
     createLights() {
@@ -345,7 +447,10 @@ import "./styles.css";
       this.isInteractive = shouldBeInteractive;
       this.interactions?.setEnabled(shouldBeInteractive);
 
-      if (!shouldBeInteractive) {
+      if (shouldBeInteractive) {
+        this.scheduleInteractionHint(0.7, 0.7);
+      } else {
+        this.resetInteractionHint();
         this.resetGemStates();
       }
     }
@@ -419,6 +524,83 @@ import "./styles.css";
       this.infoCard.hide();
     }
 
+    scheduleInteractionHint(
+      minimumDelay = GEM_HINT_DELAY_MIN_SECONDS,
+      maximumDelay = GEM_HINT_DELAY_MAX_SECONDS,
+    ) {
+      this.nextHintAt =
+        this.elapsedSeconds +
+        lerp(minimumDelay, maximumDelay, Math.random());
+    }
+
+    resetInteractionHint() {
+      this.activeHintIndex = null;
+      this.nextHintAt = Number.POSITIVE_INFINITY;
+      this.modules.forEach(({ hintGlow, visual }) => {
+        hintGlow.material.opacity = 0;
+        visual.position.set(0, 0, 0);
+      });
+    }
+
+    updateInteractionHint() {
+      if (!this.isInteractive || this.prefersReducedMotion) {
+        return;
+      }
+
+      if (this.activeHintIndex !== null) {
+        const hintAge = this.elapsedSeconds - this.hintStartedAt;
+
+        if (hintAge < GEM_HINT_DURATION_SECONDS) {
+          return;
+        }
+
+        this.activeHintIndex = null;
+        this.scheduleInteractionHint();
+        return;
+      }
+
+      if (this.elapsedSeconds < this.nextHintAt) {
+        return;
+      }
+
+      let candidates = this.modules.filter(
+        (module) => !module.isDragging && !module.isStopped,
+      );
+
+      if (candidates.length > 1) {
+        candidates = candidates.filter(
+          ({ index }) => index !== this.lastHintIndex,
+        );
+      }
+
+      const selected =
+        candidates[Math.floor(Math.random() * candidates.length)];
+
+      if (!selected) {
+        this.scheduleInteractionHint();
+        return;
+      }
+
+      this.activeHintIndex = selected.index;
+      this.lastHintIndex = selected.index;
+      this.hintStartedAt = this.elapsedSeconds;
+    }
+
+    getInteractionHintStrength(gemIndex) {
+      if (gemIndex !== this.activeHintIndex) {
+        return 0;
+      }
+
+      const progress = clamp(
+        (this.elapsedSeconds - this.hintStartedAt) /
+          GEM_HINT_DURATION_SECONDS,
+      );
+      const envelope = Math.sin(progress * Math.PI);
+      const pulse = 0.72 + Math.sin(progress * Math.PI * 6) ** 2 * 0.28;
+
+      return envelope * pulse;
+    }
+
     updateCamera() {
       const cameraProgress = smoothstep(0.06, 0.84, this.progress);
       const verticalProgress = smoothstep(0.18, 0.9, this.progress);
@@ -440,7 +622,12 @@ import "./styles.css";
         smoothstep(0.16, 0.92, this.progress),
       );
       const apparentScale = lerp(0.79, 1, smoothstep(0.08, 0.9, this.progress));
-      const worldScale = responsiveScale * apparentScale;
+      const sideViewScale = lerp(
+        1.12,
+        1,
+        smoothstep(0.08, 0.58, this.progress),
+      );
+      const worldScale = responsiveScale * apparentScale * sideViewScale;
       this.world.scale.setScalar(worldScale);
       this.world.position.y = lerp(-1.35, 0, cameraProgress);
       this.world.rotation.y = lerp(-0.08, 0.14, cameraProgress);
@@ -448,13 +635,20 @@ import "./styles.css";
 
     updateObjects(deltaSeconds) {
       const motionFactor = this.prefersReducedMotion ? 0 : 1;
-      const topViewProgress = smoothstep(0.55, 0.95, this.progress);
-      const floatAmplitude = lerp(0.36, 0.02, topViewProgress);
+      const frontalAlignment = smoothstep(
+        0.55,
+        INTERACTION_START,
+        this.progress,
+      );
+      const floatAmplitude = lerp(0.36, 0, frontalAlignment);
 
       this.elapsedSeconds += deltaSeconds * motionFactor;
+      this.updateInteractionHint();
       this.core.rotation.y += deltaSeconds * 0.32 * motionFactor;
       this.core.rotation.x += deltaSeconds * 0.17 * motionFactor;
-      this.shell.rotation.y -= deltaSeconds * 0.12 * motionFactor;
+      if (this.shell) {
+        this.shell.rotation.y -= deltaSeconds * 0.12 * motionFactor;
+      }
 
       const pulse = this.prefersReducedMotion
         ? 1
@@ -463,6 +657,7 @@ import "./styles.css";
 
       this.modules.forEach((module, index) => {
         const { mesh, definition } = module;
+        const hintStrength = this.getInteractionHintStrength(index);
 
         if (!module.isDragging && !module.isStopped) {
           const isUserDriven =
@@ -488,6 +683,18 @@ import "./styles.css";
           );
         }
 
+        const vibrationPhase = this.elapsedSeconds * 68 + index * 1.7;
+
+        module.visual.position.set(
+          Math.sin(vibrationPhase) * 0.045 * hintStrength,
+          Math.cos(vibrationPhase * 1.13) * 0.03 * hintStrength,
+          0,
+        );
+        module.hintGlow.material.opacity = hintStrength * 0.78;
+        module.hintGlow.scale.setScalar(
+          definition.size * lerp(4, 5.2, hintStrength),
+        );
+
         if (!module.isDragging && !module.isStopped) {
           const rotationSpeed = Math.max(
             0.45,
@@ -499,22 +706,26 @@ import "./styles.css";
             deltaSeconds * 1.05 * rotationSpeed * motionFactor;
         }
 
-        const targetScale = module.isDragging
+        const baseTargetScale = module.isDragging
           ? 1.38
           : module.isStopped
             ? 1.28
             : 1;
-        const feedbackStrength = module.isDragging
-          ? 1
-          : module.isStopped
-            ? 0.72
-            : 0;
+        const targetScale = baseTargetScale * (1 + hintStrength * 0.14);
+        const feedbackStrength = Math.max(
+          hintStrength,
+          module.isDragging ? 1 : module.isStopped ? 0.72 : 0,
+        );
         const feedbackProgress = clamp(deltaSeconds * 11);
 
         mesh.scale.setScalar(
           lerp(mesh.scale.x, targetScale, feedbackProgress),
         );
         module.visualMaterials.forEach((material) => {
+          if (!Number.isFinite(material.emissiveIntensity)) {
+            return;
+          }
+
           const restEmission =
             material.userData.restEmissiveIntensity ?? 0.1;
           const activeEmission =
@@ -531,6 +742,11 @@ import "./styles.css";
             feedbackProgress,
           );
         });
+        module.light.intensity = lerp(
+          module.light.intensity,
+          lerp(0.78, 2.8, feedbackStrength),
+          feedbackProgress,
+        );
       });
     }
 
@@ -615,8 +831,7 @@ import "./styles.css";
       const titleOpacity = 1 - smoothstep(0.06, 0.24, progress);
       const titleShift = lerp(0, -32, smoothstep(0.04, 0.28, progress));
       const cueOpacity = 1 - smoothstep(0.01, 0.1, progress);
-      const revealOpacity = smoothstep(0.66, 0.84, progress);
-      const revealShift = lerp(24, 0, revealOpacity);
+      const continueOpacity = smoothstep(0.66, 0.82, progress);
       const interactionOpacity = smoothstep(
         INTERACTION_START - 0.04,
         INTERACTION_START + 0.04,
@@ -627,8 +842,7 @@ import "./styles.css";
       style.setProperty("--title-opacity", titleOpacity.toFixed(3));
       style.setProperty("--title-shift", `${titleShift.toFixed(2)}px`);
       style.setProperty("--cue-opacity", cueOpacity.toFixed(3));
-      style.setProperty("--reveal-opacity", revealOpacity.toFixed(3));
-      style.setProperty("--reveal-shift", `${revealShift.toFixed(2)}px`);
+      style.setProperty("--continue-opacity", continueOpacity.toFixed(3));
       style.setProperty(
         "--interaction-opacity",
         interactionOpacity.toFixed(3),
@@ -646,4 +860,8 @@ import "./styles.css";
   }
 
   new ScrollStory(storyElement, orbitExperience);
+
+  if (moduleCardElements.length > 0) {
+    new ModuleGemGallery(moduleCardElements);
+  }
 })();

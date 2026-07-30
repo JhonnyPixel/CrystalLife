@@ -1,134 +1,173 @@
-import { Box3, Color, Group, Vector3 } from "three";
+import {
+  Box3,
+  GLTFLoader,
+  Group,
+  LoadingManager,
+  Vector3,
+} from "verge3d";
 
-const MODEL_URL = new URL("../gemme.glb", import.meta.url).href;
-const WHITE = new Color(0xffffff);
+const GEM_VISUAL_SCALE = 0.84;
 
-const setInteractionEmission = (material, isInnerCrystal) => {
-  material.userData.restEmissiveIntensity = isInnerCrystal
-    ? Math.max(material.emissiveIntensity, 4.4)
-    : 0.02;
-  material.userData.activeEmissiveIntensity = isInnerCrystal
-    ? 6
-    : 0.28;
-};
-
-const configureOuterCrystal = (material, color) => {
-  material.color?.copy(color).multiplyScalar(0.32);
-  material.emissive?.copy(color).multiplyScalar(0.12);
-  material.attenuationColor?.copy(color);
-  material.metalness = 0;
-  material.roughness = 0.18;
-  material.transmission = 0.18;
-  material.ior = 1.85;
-  material.thickness = 0.45;
-  material.attenuationDistance = 1.5;
-  material.envMapIntensity = 1.35;
-  material.clearcoat = 0.72;
-  material.clearcoatRoughness = 0.09;
-  material.specularIntensity = 1;
-  material.specularColor?.copy(WHITE);
-  material.iridescence = 0.12;
-  material.iridescenceIOR = 1.3;
-  material.iridescenceThicknessRange = [100, 280];
-  material.opacity = 0.66;
-  material.transparent = true;
-  material.depthWrite = false;
-};
-
-const configureInnerCrystal = (material, color) => {
-  material.color?.copy(color).lerp(WHITE, 0.68);
-  material.emissive?.copy(WHITE).lerp(color, 0.24);
-  material.attenuationColor?.copy(color);
-  material.metalness = 0;
-  material.roughness = 0.3;
-  material.transmission = 0;
-  material.ior = 1.46;
-  material.thickness = 0.12;
-  material.attenuationDistance = 0.58;
-  material.envMapIntensity = 1;
-  material.clearcoat = 0.4;
-  material.clearcoatRoughness = 0.12;
-  material.opacity = 1;
-  material.transparent = false;
-};
-
-const tintMaterial = (sourceMaterial, color) => {
-  const material = sourceMaterial.clone();
-  const hasExportedEmission =
-    material.emissive && material.emissive.getHex() !== 0;
-
-  if (hasExportedEmission) {
-    configureInnerCrystal(material, color);
-  } else {
-    configureOuterCrystal(material, color);
+const cloneRenderableBranch = (source) => {
+  if (source.isCamera || source.isLight) {
+    return null;
   }
 
-  if (material.emissive) {
-    setInteractionEmission(material, hasExportedEmission);
-    material.emissiveIntensity =
-      material.userData.restEmissiveIntensity;
+  const clone = source.clone(false);
+
+  source.children.forEach((child) => {
+    const childClone = cloneRenderableBranch(child);
+
+    if (childClone) {
+      clone.add(childClone);
+    }
+  });
+
+  return clone;
+};
+
+const isBranchVisible = (object) => {
+  let current = object;
+
+  while (current) {
+    if (!current.visible) {
+      return false;
+    }
+
+    current = current.parent;
   }
 
-  material.needsUpdate = true;
-  return material;
+  return true;
+};
+
+const getVisibleBounds = (root) => {
+  const bounds = new Box3().makeEmpty();
+  const meshBounds = new Box3();
+
+  root.updateMatrixWorld(true);
+  root.traverse((object) => {
+    if (!object.isMesh || !isBranchVisible(object)) {
+      return;
+    }
+
+    object.geometry.computeBoundingBox();
+    meshBounds
+      .copy(object.geometry.boundingBox)
+      .applyMatrix4(object.matrixWorld);
+    bounds.union(meshBounds);
+  });
+
+  return bounds;
+};
+
+const revealHiddenMeshes = (root) => {
+  root.traverse((object) => {
+    if (!object.isMesh) {
+      return;
+    }
+
+    let current = object;
+
+    while (current && current !== root) {
+      current.visible = true;
+      current = current.parent;
+    }
+  });
+};
+
+const createModelLoader = (modelUrl) => {
+  const manager = new LoadingManager();
+  const binaryUrl = new URL("gemme.bin", new URL(modelUrl, document.baseURI));
+
+  manager.setURLModifier((url) =>
+    /\.bin(?:$|\?)/i.test(url) ? binaryUrl.href : url
+  );
+
+  return new GLTFLoader(manager);
 };
 
 export class GemModelFactory {
-  constructor(loader = null) {
-    this.loader = loader;
+  constructor({ modelUrl }) {
+    if (!modelUrl) {
+      throw new Error("URL modello gemma mancante.");
+    }
+
+    this.modelUrl = modelUrl;
+    this.loader = createModelLoader(modelUrl);
     this.template = null;
     this.templateCenter = new Vector3();
     this.templateDiameter = 1;
+    this.worldMaterial = null;
   }
 
   async load() {
-    if (!this.loader) {
-      const { GLTFLoader } = await import(
-        "three/addons/loaders/GLTFLoader.js"
-      );
-      this.loader = new GLTFLoader();
+    const { scene, world } = await this.loader.loadAsync(this.modelUrl);
+    const template = new Group();
+
+    scene.children.forEach((child) => {
+      const childClone = cloneRenderableBranch(child);
+
+      if (childClone) {
+        template.add(childClone);
+      }
+    });
+
+    let bounds = getVisibleBounds(template);
+
+    if (bounds.isEmpty()) {
+      revealHiddenMeshes(template);
+      bounds = getVisibleBounds(template);
     }
 
-    const { scene } = await this.loader.loadAsync(MODEL_URL);
-    const bounds = new Box3().setFromObject(scene);
+    if (bounds.isEmpty()) {
+      throw new Error(`Nessuna mesh nel modello: ${this.modelUrl}`);
+    }
+
     const size = bounds.getSize(new Vector3());
 
     bounds.getCenter(this.templateCenter);
     this.templateDiameter = Math.max(size.x, size.y, size.z, 0.001);
-    this.template = scene;
+    this.template = template;
+    this.worldMaterial = world?.material ?? scene.worldMaterial;
   }
 
-  create({ color, size }) {
+  applyEnvironment(scene) {
+    if (!this.worldMaterial) {
+      return false;
+    }
+
+    scene.worldMaterial = this.worldMaterial;
+    return true;
+  }
+
+  create({ size }) {
     if (!this.template) {
       throw new Error("Modello gemma non ancora caricato.");
     }
 
-    const tint = new Color(color);
     const model = this.template.clone(true);
     const visual = new Group();
     const materials = [];
 
     model.position.sub(this.templateCenter);
     model.traverse((object) => {
-      if (!object.isMesh) {
+      if (!object.isMesh || !isBranchVisible(object)) {
         return;
       }
 
-      const sourceMaterials = Array.isArray(object.material)
+      const meshMaterials = Array.isArray(object.material)
         ? object.material
         : [object.material];
-      const tintedMaterials = sourceMaterials.map((material) => {
-        const tintedMaterial = tintMaterial(material, tint);
-        materials.push(tintedMaterial);
-        return tintedMaterial;
+      meshMaterials.forEach((material) => {
+        if (!materials.includes(material)) {
+          materials.push(material);
+        }
       });
-
-      object.material = Array.isArray(object.material)
-        ? tintedMaterials
-        : tintedMaterials[0];
     });
 
-    visual.scale.setScalar((size * 2) / this.templateDiameter);
+    visual.scale.setScalar(
+      (size * 2 * GEM_VISUAL_SCALE) / this.templateDiameter,
+    );
     visual.add(model);
 
     return { materials, visual };

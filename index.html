@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="OGGI è il sistema personale per trasformare intenzioni, disciplina e crescita in una pratica quotidiana."
+      content="CrystalLife è il sistema personale per trasformare intenzioni, disciplina e crescita in una pratica quotidiana."
     />
     <meta name="theme-color" content="#000000" />
-    <title>OGGI — Costruisci ciò che diventi</title>
+    <title>CrystalLife — Costruisci ciò che diventi</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -36,11 +36,15 @@
             aria-label="Sistema orbitale interattivo. In vista verticale, trascina una gemma lungo la sua orbita e rilasciala per lanciarla. Un clic la ferma e apre la sua scheda."
           ></div>
           <p class="sr-only" data-gem-status aria-live="polite"></p>
-          <div class="orbit-story__glow" aria-hidden="true"></div>
 
           <div class="hero-copy">
             <p class="hero-copy__eyebrow">Il tuo sistema. La tua direzione.</p>
-            <h1 class="hero-copy__title" id="hero-title">OGGI</h1>
+            <h1 class="hero-copy__title" id="hero-title">
+              <span
+                class="hero-copy__crystal"
+                data-text="Crystal"
+              >Crystal</span><span class="hero-copy__life">Life</span>
+            </h1>
             <p class="hero-copy__subtitle">Costruisci ciò che diventi.</p>
           </div>
 
@@ -50,7 +54,11 @@
           </div>
 
           <div class="gem-controls" aria-hidden="true">
-            Trascina e lancia <span>·</span> Clic: ferma e scopri
+            <span class="gem-controls__signal"></span>
+            <span class="gem-controls__copy">
+              <strong>Interagisci con l'orbita</strong>
+              <small>Trascina una gemma · Clicca per scoprirla</small>
+            </span>
           </div>
 
           <aside
@@ -88,13 +96,9 @@
             </button>
           </aside>
 
-          <div class="orbit-reveal">
-            <p class="orbit-reveal__label">Una vita, un centro</p>
-            <p class="orbit-reveal__text">
-              <span>Tutto cambia quando</span>
-              <span>ciò che conta smette</span>
-              <span>di restare ai margini.</span>
-            </p>
+          <div class="continue-cue" aria-hidden="true">
+            <i></i>
+            <i></i>
           </div>
         </div>
       </section>
@@ -105,8 +109,8 @@
           <h2>Tutto parte<br />da oggi.</h2>
           <div class="intro__copy">
             <p>
-              OGGI riunisce mente, corpo, disciplina, relazioni e crescita in
-              un solo sistema. Meno rumore. Più intenzione.
+              CrystalLife riunisce mente, corpo, disciplina, relazioni e
+              crescita in un solo sistema. Meno rumore. Più intenzione.
             </p>
             <p>
               Non inseguire una versione ideale di te. Costruiscila, una scelta
@@ -116,7 +120,11 @@
         </div>
       </section>
 
-      <section class="modules section-shell" aria-labelledby="modules-title">
+      <section
+        class="modules section-shell"
+        id="moduli"
+        aria-labelledby="modules-title"
+      >
         <div class="section-heading">
           <div>
             <p class="section-label">Il tuo ecosistema</p>
@@ -129,41 +137,61 @@
         </div>
 
         <div class="module-grid">
-          <article class="module-card module-card--featured">
+          <article
+            class="module-card module-card--featured"
+            data-module-card
+            data-gem-model="mind"
+          >
             <span class="module-card__number">01</span>
-            <div>
+            <div class="module-card__content">
               <span class="module-card__orb module-card__orb--violet"></span>
               <h3>Mente</h3>
               <p>Journaling, chiarezza e riflessione stoica.</p>
             </div>
           </article>
-          <article class="module-card">
+          <article
+            class="module-card"
+            data-module-card
+            data-gem-model="body"
+          >
             <span class="module-card__number">02</span>
-            <div>
+            <div class="module-card__content">
               <span class="module-card__orb module-card__orb--lime"></span>
               <h3>Corpo</h3>
               <p>Energia, allenamento e recupero consapevole.</p>
             </div>
           </article>
-          <article class="module-card">
+          <article
+            class="module-card"
+            data-module-card
+            data-gem-model="discipline"
+          >
             <span class="module-card__number">03</span>
-            <div>
+            <div class="module-card__content">
               <span class="module-card__orb module-card__orb--purple"></span>
               <h3>Disciplina</h3>
               <p>Blocca il rumore. Mantieni le promesse.</p>
             </div>
           </article>
-          <article class="module-card">
+          <article
+            class="module-card"
+            data-module-card
+            data-gem-model="relationships"
+          >
             <span class="module-card__number">04</span>
-            <div>
+            <div class="module-card__content">
               <span class="module-card__orb module-card__orb--pink"></span>
               <h3>Relazioni</h3>
               <p>Presenza reale per le persone che contano.</p>
             </div>
           </article>
-          <article class="module-card">
+          <article
+            class="module-card"
+            data-module-card
+            data-gem-model="growth"
+          >
             <span class="module-card__number">05</span>
-            <div>
+            <div class="module-card__content">
               <span class="module-card__orb module-card__orb--blue"></span>
               <h3>Crescita</h3>
               <p>Obiettivi leggibili. Progresso che resta.</p>
@@ -234,7 +262,7 @@
     </main>
 
     <footer class="footer section-shell">
-      <span class="footer__brand">OGGI</span>
+      <span class="footer__brand">CrystalLife</span>
       <p>Disciplina senza rumore.</p>
       <span>© 2026</span>
     </footer>

@@ -1,4 +1,4 @@
-import { Vector3 } from "three";
+import { Vector3 } from "verge3d";
 
 const VIEWPORT_MARGIN = 16;
 
