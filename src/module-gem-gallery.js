@@ -1,24 +1,37 @@
 import {
-  AgXBlenderToneMapping,
   AmbientLight,
   App,
+  BloomPass,
+  Detector,
   DirectionalLight,
+  EffectComposer,
+  HalfFloatType,
+  LinearEncoding,
   PerspectiveCamera,
+  PbrNeutralToneMapping,
+  RGBAFormat,
+  RenderPass,
   Scene,
   SRGBColorSpace,
+  ToneMapPass,
+  Vector2,
+  WebGLRenderTarget,
 } from "verge3d";
 import { GEM_ASSETS } from "./gem-assets.js";
+import { styleGemMaterials } from "./gem-materials.js";
 import { GemModelFactory } from "./gem-model.js";
 
 const MODEL_SIZE = 1.05;
 const DRAG_SENSITIVITY = 0.011;
 const MAX_ANGULAR_VELOCITY = 4;
 const AUTO_ROTATION_SPEED = 0.16;
-
+const CORE_BLOOM_STRENGTH = 0.7;
+const CORE_BLOOM_RADIUS = 0.2;
+const CORE_BLOOM_THRESHOLD = 0.1;
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
 class ModuleGemCard {
-  constructor(element, prefersReducedMotion) {
+  constructor(element, prefersReducedMotion, renderer, camera) {
     this.element = element;
     this.asset = GEM_ASSETS[element.dataset.gemModel];
     this.modelUrl = this.asset?.modelUrl;
@@ -27,6 +40,7 @@ class ModuleGemCard {
     this.pointerId = null;
     this.lastPointerPosition = null;
     this.angularVelocity = { x: 0, y: 0 };
+    this.renderSize = { width: 0, height: 0 };
 
     if (!this.modelUrl) {
       throw new Error("Configurazione gemma modulo incompleta.");
@@ -34,6 +48,7 @@ class ModuleGemCard {
 
     this.interactionElement = this.createInteractionElement();
     this.createScene();
+    this.createPostProcessing(renderer, camera);
     this.bindInteraction();
   }
 
@@ -58,13 +73,51 @@ class ModuleGemCard {
     this.scene.add(ambientLight, keyLight, rimLight);
   }
 
+  createPostProcessing(renderer, camera) {
+    const supportsHdr =
+      renderer.capabilities.isWebGL2 &&
+      Detector.checkHalfFloatTex(renderer, true);
+    const renderTargetOptions = {
+      format: RGBAFormat,
+      stencilBuffer: false,
+      ...(supportsHdr
+        ? {
+            encoding: LinearEncoding,
+            type: HalfFloatType,
+          }
+        : {}),
+    };
+    const renderTarget = new WebGLRenderTarget(
+      1,
+      1,
+      renderTargetOptions,
+    );
+    const renderPass = new RenderPass(this.scene, camera);
+    const bloomPass = new BloomPass(
+      new Vector2(1, 1),
+      CORE_BLOOM_STRENGTH,
+      CORE_BLOOM_RADIUS,
+      CORE_BLOOM_THRESHOLD,
+      renderTargetOptions,
+    );
+
+    this.composer = new EffectComposer(renderer, renderTarget);
+    this.composer.setPixelRatio(renderer.getPixelRatio());
+    this.composer.addPass(renderPass);
+    this.composer.addPass(bloomPass);
+    this.composer.addPass(new ToneMapPass());
+  }
+
   async load() {
     const factory = new GemModelFactory(this.asset);
 
     await factory.load();
 
-    const { visual } = factory.create({ size: MODEL_SIZE });
+    const { materials, visual } = factory.create({ size: MODEL_SIZE });
+    const orb = this.element.querySelector(".module-card__orb");
+    const color = orb ? getComputedStyle(orb).backgroundColor : null;
 
+    styleGemMaterials({ color, materials, visual });
     visual.rotation.set(0.2, -0.45, -0.08);
     this.visual = visual;
     this.scene.add(visual);
@@ -227,6 +280,21 @@ class ModuleGemCard {
 
     this.visual.position.set(horizontalOffset, 0.42, 0);
   }
+
+  render(width, height) {
+    const renderWidth = Math.max(Math.round(width), 1);
+    const renderHeight = Math.max(Math.round(height), 1);
+
+    if (
+      renderWidth !== this.renderSize.width ||
+      renderHeight !== this.renderSize.height
+    ) {
+      this.renderSize = { width: renderWidth, height: renderHeight };
+      this.composer.setSize(renderWidth, renderHeight);
+    }
+
+    this.composer.render();
+  }
 }
 
 export class ModuleGemGallery {
@@ -246,7 +314,12 @@ export class ModuleGemGallery {
     this.createScene();
     this.cards = elements.map(
       (element) =>
-        new ModuleGemCard(element, this.prefersReducedMotion),
+        new ModuleGemCard(
+          element,
+          this.prefersReducedMotion,
+          this.renderer,
+          this.camera,
+        ),
     );
     this.observeSize();
     this.observeVisibility();
@@ -278,7 +351,7 @@ export class ModuleGemGallery {
     this.renderer.setClearColor(0x000000, 0);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     this.renderer.outputColorSpace = SRGBColorSpace;
-    this.renderer.toneMapping = AgXBlenderToneMapping;
+    this.renderer.toneMapping = PbrNeutralToneMapping;
     this.renderer.toneMappingExposure = 1;
     this.renderer.autoClear = false;
     this.renderer.shadowMap.enabled = false;
@@ -362,7 +435,7 @@ export class ModuleGemGallery {
     card.positionVisual(this.camera.aspect);
     this.renderer.setViewport(left, bottom, width, height);
     this.renderer.setScissor(left, bottom, width, height);
-    this.renderer.render(card.scene, this.camera);
+    card.render(width, height);
   }
 
   render = (frameTime) => {

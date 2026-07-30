@@ -18,7 +18,12 @@ import {
   GEM_ASSETS,
   GEM_MODEL_URLS,
 } from "./gem-assets.js";
+import { styleGemMaterials } from "./gem-materials.js";
 import { GemModelFactory } from "./gem-model.js";
+import {
+  styleSunMaterials,
+  SunEffects,
+} from "./sun-effects.js";
 
 const CORE_SIZE = 0.7;
 const MAX_DELTA_SECONDS = 0.05;
@@ -144,6 +149,11 @@ export class FeatureOrbitPreview {
     this.coreFallback.add(body, shell);
     this.core = new Group();
     this.core.add(this.coreFallback);
+    this.sunEffects = new SunEffects({
+      distance: 8,
+      intensity: 2.8,
+    });
+    this.core.add(this.sunEffects.root);
     this.world.add(this.core);
   }
 
@@ -230,8 +240,9 @@ export class FeatureOrbitPreview {
     });
 
     await factory.load();
-    const { visual } = factory.create({ size: CORE_SIZE });
+    const { materials, visual } = factory.create({ size: CORE_SIZE });
 
+    styleSunMaterials(materials, visual);
     this.core.remove(this.coreFallback);
     this.coreFallback.traverse(disposeMesh);
     this.core.add(visual);
@@ -246,10 +257,15 @@ export class FeatureOrbitPreview {
     });
 
     await factory.load();
-    const { visual } = factory.create({
+    const { materials, visual } = factory.create({
       size: module.definition.size,
     });
 
+    styleGemMaterials({
+      color: module.definition.color,
+      materials,
+      visual,
+    });
     module.mesh.remove(module.fallback);
     disposeMesh(module.fallback);
     module.mesh.add(visual);
@@ -312,6 +328,7 @@ export class FeatureOrbitPreview {
 
     this.core.rotation.y += deltaSeconds * 0.28 * motionScale;
     this.core.rotation.x += deltaSeconds * 0.12 * motionScale;
+    this.sunEffects.update(deltaSeconds, this.prefersReducedMotion);
     this.modules.forEach((module) => {
       module.angle +=
         module.definition.speed * deltaSeconds * motionScale;

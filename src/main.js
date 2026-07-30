@@ -28,9 +28,23 @@ import {
 import { FeatureOrbitPreview } from "./feature-orbit-preview.js";
 import { GemInfoCard } from "./gem-info-card.js";
 import { GemInteractionController } from "./gem-interaction.js";
+import { styleGemMaterials } from "./gem-materials.js";
 import { GemModelFactory } from "./gem-model.js";
 import { ModuleGemGallery } from "./module-gem-gallery.js";
+import { SpaceBackground } from "./space-background.js";
+import {
+  styleSunMaterials,
+  SunEffects,
+} from "./sun-effects.js";
 import "./styles.css";
+
+const spaceBackgroundCanvas = document.querySelector(
+  "[data-space-background]",
+);
+
+if (spaceBackgroundCanvas) {
+  new SpaceBackground(spaceBackgroundCanvas);
+}
 
 (() => {
   "use strict";
@@ -204,6 +218,11 @@ import "./styles.css";
 
       this.core = new Group();
       this.core.add(this.coreFallback);
+      this.sunEffects = new SunEffects({
+        distance: 22,
+        intensity: 5.2,
+      });
+      this.core.add(this.sunEffects.root);
       this.world.add(this.core);
     }
 
@@ -227,9 +246,12 @@ import "./styles.css";
     }
 
     replaceCoreFallback(modelFactory) {
-      const { visual } = modelFactory.create({ size: CORE_MODEL_SIZE });
+      const { materials, visual } = modelFactory.create({
+        size: CORE_MODEL_SIZE,
+      });
       const fallback = this.coreFallback;
 
+      styleSunMaterials(materials, visual);
       this.core.remove(fallback);
       disposeRenderable(fallback);
       this.core.add(visual);
@@ -331,7 +353,7 @@ import "./styles.css";
         hitArea.userData.gemIndex = index;
         mesh.add(hitArea);
 
-        const light = new PointLight(definition.color, 0.78, 3.8);
+        const light = new PointLight(definition.color, 1.35, 3.8);
         const hintGlow = new Sprite(
           new SpriteMaterial({
             map: this.interactionGlowTexture,
@@ -421,6 +443,12 @@ import "./styles.css";
       const { materials, visual } = modelFactory.create(module.definition);
       const fallback = module.visual;
 
+      styleGemMaterials({
+        addLight: false,
+        color: module.definition.color,
+        materials,
+        visual,
+      });
       module.mesh.remove(fallback);
       fallback.geometry.dispose();
       fallback.material.dispose();
@@ -430,17 +458,13 @@ import "./styles.css";
     }
 
     createLights() {
-      this.scene.add(new AmbientLight(0xffffff, 0.46));
+      this.scene.add(new AmbientLight(0xffffff, 0.22));
 
-      const keyLight = new DirectionalLight(0xffffff, 1.4);
+      const keyLight = new DirectionalLight(0xffffff, 0.48);
       keyLight.position.set(4, 8, 7);
       this.scene.add(keyLight);
 
-      const violetFill = new PointLight(0x8b5cf6, 1.1, 18);
-      violetFill.position.set(-5, 2, 4);
-      this.scene.add(violetFill);
-
-      const rimLight = new DirectionalLight(0xd7c6ff, 1.15);
+      const rimLight = new DirectionalLight(0xff9a52, 0.42);
       rimLight.position.set(-5, 4, -6);
       this.scene.add(rimLight);
     }
@@ -685,6 +709,10 @@ import "./styles.css";
         ? 1
         : 1 + Math.sin(this.elapsedSeconds * 2) * 0.035;
       this.core.scale.setScalar(pulse);
+      this.sunEffects.update(
+        deltaSeconds,
+        this.prefersReducedMotion,
+      );
 
       this.modules.forEach((module, index) => {
         const { mesh, definition, orbitDistance } = module;
@@ -767,7 +795,7 @@ import "./styles.css";
         });
         module.light.intensity = lerp(
           module.light.intensity,
-          lerp(0.78, 2.8, feedbackStrength),
+          lerp(1.35, 3.1, feedbackStrength),
           feedbackProgress,
         );
       });
