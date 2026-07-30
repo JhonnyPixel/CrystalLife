@@ -93,6 +93,17 @@ h3 {
   height: 100%;
 }
 
+.gem-touch-target {
+  position: absolute;
+  z-index: 2;
+  width: 76px;
+  border-radius: 50%;
+  aspect-ratio: 1;
+  pointer-events: none;
+  touch-action: none;
+  transform: translate(-50%, -50%);
+}
+
 .orbit-canvas.is-interactive canvas {
   cursor: grab;
 }
@@ -451,32 +462,11 @@ h3 {
   font-weight: 600;
 }
 
-.gem-info-card__release {
-  width: 100%;
-  min-height: 40px;
-  margin-top: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.13);
-  border-radius: 0.65rem;
-  background: #111111;
-  color: rgba(255, 255, 255, 0.88);
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  transition:
-    border-color 160ms ease,
-    background-color 160ms ease;
-}
-
-.gem-info-card__close:hover,
-.gem-info-card__release:hover {
+.gem-info-card__close:hover {
   background: #1a1a1a;
 }
 
-.gem-info-card__close:focus-visible,
-.gem-info-card__release:focus-visible {
+.gem-info-card__close:focus-visible {
   outline: 2px solid var(--primary-light);
   outline-offset: 2px;
 }
@@ -606,7 +596,7 @@ h3 {
   border: 1px solid var(--border);
   border-radius: 1.5rem;
   background: var(--surface-low);
-  cursor: grab;
+  cursor: default;
   touch-action: pan-y;
   transition:
     border-color 300ms ease,
@@ -641,6 +631,23 @@ h3 {
 }
 
 .module-card.is-rotating {
+  cursor: grabbing;
+}
+
+.module-card__gem-interaction {
+  position: absolute;
+  z-index: 2;
+  inset: 0 0 38%;
+  cursor: grab;
+  pointer-events: none;
+  touch-action: none;
+}
+
+.module-card.has-gem .module-card__gem-interaction {
+  pointer-events: auto;
+}
+
+.module-card.is-rotating .module-card__gem-interaction {
   cursor: grabbing;
 }
 
@@ -995,6 +1002,19 @@ h3 {
 
   .path-list p {
     grid-column: 2;
+  }
+}
+
+@media (max-width: 560px), (hover: none) and (pointer: coarse) {
+  .orbit-canvas.is-interactive .gem-touch-target {
+    pointer-events: auto;
+  }
+
+  a[href*="soft8soft.com/verge3d-trial"] {
+    right: max(6px, env(safe-area-inset-right)) !important;
+    bottom: max(6px, env(safe-area-inset-bottom)) !important;
+    font-size: 9px !important;
+    opacity: 0.38 !important;
   }
 }
 

@@ -33,6 +33,14 @@ import "./styles.css";
 
   const CORE_MODEL_SIZE = 1.76;
   const INTERACTION_START = 0.78;
+  const CAMERA_FOV_DEGREES = 58;
+  const FINAL_CAMERA_HEIGHT = 14;
+  const MOBILE_VIEWPORT_QUERY =
+    "(max-width: 560px), (hover: none) and (pointer: coarse)";
+  const MOBILE_ORBIT_SCALE_BOOST = 1.1;
+  const MOBILE_ORBIT_OPACITY = 0.16;
+  const ORBIT_OPACITY = 0.075;
+  const ORBIT_SCREEN_EDGE_RATIO = 0.94;
   const GEM_HINT_DURATION_SECONDS = 1.35;
   const GEM_HINT_DELAY_MIN_SECONDS = 2.4;
   const GEM_HINT_DELAY_MAX_SECONDS = 4.2;
@@ -108,6 +116,7 @@ import "./styles.css";
       this.prefersReducedMotion = window.matchMedia(
         "(prefers-reduced-motion: reduce)",
       ).matches;
+      this.mobileViewport = window.matchMedia(MOBILE_VIEWPORT_QUERY);
       this.activeHintIndex = null;
       this.hintStartedAt = 0;
       this.lastHintIndex = null;
@@ -133,7 +142,12 @@ import "./styles.css";
 
     createScene() {
       this.scene = new Scene();
-      this.camera = new PerspectiveCamera(58, 1, 0.1, 100);
+      this.camera = new PerspectiveCamera(
+        CAMERA_FOV_DEGREES,
+        1,
+        0.1,
+        100,
+      );
       this.app = new App(this.container, {
         alpha: true,
         antialias: true,
@@ -328,6 +342,7 @@ import "./styles.css";
           visual,
           visualMaterials: [material],
           definition,
+          orbitDistance: definition.distance,
           angle,
           angularVelocity: definition.speed,
           isDragging: false,
@@ -335,14 +350,16 @@ import "./styles.css";
         });
 
         const orbitGeometry = new RingGeometry(
-          definition.distance - 0.012,
-          definition.distance + 0.012,
+          definition.distance - 0.018,
+          definition.distance + 0.018,
           160,
         );
         const orbitMaterial = new MeshBasicMaterial({
           color: 0xe3e2e3,
           transparent: true,
-          opacity: 0.075,
+          opacity: this.mobileViewport.matches
+            ? MOBILE_ORBIT_OPACITY
+            : ORBIT_OPACITY,
           side: DoubleSide,
           depthWrite: false,
         });
@@ -536,9 +553,8 @@ import "./styles.css";
     resetInteractionHint() {
       this.activeHintIndex = null;
       this.nextHintAt = Number.POSITIVE_INFINITY;
-      this.modules.forEach(({ hintGlow, visual }) => {
+      this.modules.forEach(({ hintGlow }) => {
         hintGlow.material.opacity = 0;
-        visual.position.set(0, 0, 0);
       });
     }
 
@@ -607,7 +623,7 @@ import "./styles.css";
 
       this.camera.position.set(
         0.001,
-        lerp(4.5, 14, verticalProgress),
+        lerp(4.5, FINAL_CAMERA_HEIGHT, verticalProgress),
         lerp(17, 0.08, cameraProgress),
       );
 
@@ -627,7 +643,14 @@ import "./styles.css";
         1,
         smoothstep(0.08, 0.58, this.progress),
       );
-      const worldScale = responsiveScale * apparentScale * sideViewScale;
+      const mobileScaleBoost = this.mobileViewport.matches
+        ? MOBILE_ORBIT_SCALE_BOOST
+        : 1;
+      const worldScale =
+        responsiveScale *
+        apparentScale *
+        sideViewScale *
+        mobileScaleBoost;
       this.world.scale.setScalar(worldScale);
       this.world.position.y = lerp(-1.35, 0, cameraProgress);
       this.world.rotation.y = lerp(-0.08, 0.14, cameraProgress);
@@ -635,12 +658,6 @@ import "./styles.css";
 
     updateObjects(deltaSeconds) {
       const motionFactor = this.prefersReducedMotion ? 0 : 1;
-      const frontalAlignment = smoothstep(
-        0.55,
-        INTERACTION_START,
-        this.progress,
-      );
-      const floatAmplitude = lerp(0.36, 0, frontalAlignment);
 
       this.elapsedSeconds += deltaSeconds * motionFactor;
       this.updateInteractionHint();
@@ -656,7 +673,7 @@ import "./styles.css";
       this.core.scale.setScalar(pulse);
 
       this.modules.forEach((module, index) => {
-        const { mesh, definition } = module;
+        const { mesh, definition, orbitDistance } = module;
         const hintStrength = this.getInteractionHintStrength(index);
 
         if (!module.isDragging && !module.isStopped) {
@@ -676,20 +693,12 @@ import "./styles.css";
 
         if (!module.isStopped) {
           mesh.position.set(
-            Math.cos(module.angle) * definition.distance,
-            Math.sin(this.elapsedSeconds * 1.1 + module.angle + index) *
-              floatAmplitude,
-            Math.sin(module.angle) * definition.distance,
+            Math.cos(module.angle) * orbitDistance,
+            0,
+            Math.sin(module.angle) * orbitDistance,
           );
         }
 
-        const vibrationPhase = this.elapsedSeconds * 68 + index * 1.7;
-
-        module.visual.position.set(
-          Math.sin(vibrationPhase) * 0.045 * hintStrength,
-          Math.cos(vibrationPhase * 1.13) * 0.03 * hintStrength,
-          0,
-        );
         module.hintGlow.material.opacity = hintStrength * 0.78;
         module.hintGlow.scale.setScalar(
           definition.size * lerp(4, 5.2, hintStrength),
@@ -760,6 +769,7 @@ import "./styles.css";
       if (this.isVisible) {
         this.updateCamera();
         this.updateObjects(deltaSeconds);
+        this.interactions?.updateTouchTargets();
         this.renderer.render(this.scene, this.camera);
         this.infoCard?.updatePosition(this.camera);
       }
@@ -773,8 +783,59 @@ import "./styles.css";
       this.camera.aspect = width / height;
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(width, height, false);
+      const orbitOpacity = this.mobileViewport.matches
+        ? MOBILE_ORBIT_OPACITY
+        : ORBIT_OPACITY;
+      this.orbits.forEach(({ material }) => {
+        material.opacity = orbitOpacity;
+      });
+      this.updateOrbitLayout();
       this.updateCamera();
     };
+
+    updateOrbitLayout() {
+      this.modules.forEach((module) => {
+        module.orbitDistance = module.definition.distance;
+      });
+
+      const outerModule = this.modules.at(-1);
+      const penultimateModule = this.modules.at(-2);
+      const outerOrbit = this.orbits.at(-1);
+
+      if (!outerModule || !penultimateModule || !outerOrbit) {
+        return;
+      }
+
+      const shouldMergeOuterOrbit = this.isOuterOrbitOffscreen(outerModule);
+
+      if (shouldMergeOuterOrbit) {
+        outerModule.orbitDistance = penultimateModule.orbitDistance;
+      }
+
+      outerOrbit.visible = !shouldMergeOuterOrbit;
+      this.infoCard?.updateOrbitLabel();
+    }
+
+    isOuterOrbitOffscreen(outerModule) {
+      if (!this.mobileViewport.matches) {
+        return false;
+      }
+
+      const finalResponsiveScale = clamp(this.camera.aspect, 0.56, 1);
+      const finalWorldScale =
+        finalResponsiveScale * MOBILE_ORBIT_SCALE_BOOST;
+      const verticalHalfView =
+        Math.tan((this.camera.fov * Math.PI) / 360) *
+        FINAL_CAMERA_HEIGHT;
+      const horizontalHalfView = verticalHalfView * this.camera.aspect;
+      const outerOrbitRadius =
+        outerModule.definition.distance * finalWorldScale;
+
+      return (
+        outerOrbitRadius >
+        horizontalHalfView * ORBIT_SCREEN_EDGE_RATIO
+      );
+    }
 
     observeVisibility() {
       if (!("IntersectionObserver" in window)) {

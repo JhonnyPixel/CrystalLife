@@ -23,10 +23,7 @@ export class GemInfoCard {
 
     this.element
       .querySelector("[data-gem-close]")
-      ?.addEventListener("click", this.hide);
-    this.element
-      .querySelector("[data-gem-release]")
-      ?.addEventListener("click", this.release);
+      ?.addEventListener("click", this.close);
   }
 
   show(module) {
@@ -37,7 +34,7 @@ export class GemInfoCard {
     this.selectedModule = module;
     this.nameElement.textContent = module.definition.name;
     this.descriptionElement.textContent = module.definition.description;
-    this.orbitElement.textContent = `${module.definition.distance.toFixed(1)} UA`;
+    this.updateOrbitLabel();
     this.accentElement.style.backgroundColor =
       module.definition.cssColor;
     this.accentElement.style.boxShadow =
@@ -58,14 +55,25 @@ export class GemInfoCard {
     this.element.hidden = true;
   };
 
-  release = () => {
+  close = () => {
     if (!this.selectedModule) {
       return;
     }
 
-    this.onRelease(this.selectedModule.index);
+    const moduleIndex = this.selectedModule.index;
+
     this.hide();
+    this.onRelease(moduleIndex);
   };
+
+  updateOrbitLabel() {
+    if (!this.orbitElement || !this.selectedModule) {
+      return;
+    }
+
+    this.orbitElement.textContent =
+      `${this.selectedModule.orbitDistance.toFixed(1)} UA`;
+  }
 
   updatePosition(camera) {
     if (!this.element || !this.selectedModule) {

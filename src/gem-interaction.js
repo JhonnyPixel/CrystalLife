@@ -35,9 +35,11 @@ export class GemInteractionController {
     this.orbitPlane = new Plane(new Vector3(0, 1, 0), 0);
     this.worldPoint = new Vector3();
     this.localPoint = new Vector3();
+    this.projectedPoint = new Vector3();
     this.sound = new GemSound();
     this.isEnabled = false;
     this.dragState = null;
+    this.touchTargets = this.createTouchTargets();
 
     this.container.addEventListener("pointerdown", this.handlePointerDown);
     this.container.addEventListener("pointermove", this.handlePointerMove);
@@ -63,7 +65,9 @@ export class GemInteractionController {
       return;
     }
 
-    const gemIndex = this.pickGem(event.clientX, event.clientY);
+    const gemIndex =
+      this.getTargetGemIndex(event.target) ??
+      this.pickGem(event.clientX, event.clientY);
 
     if (gemIndex === null) {
       return;
@@ -194,6 +198,56 @@ export class GemInteractionController {
       false,
     );
     return intersection?.object.userData.gemIndex ?? null;
+  }
+
+  createTouchTargets() {
+    return this.modules.map(({ definition }, gemIndex) => {
+      const target = document.createElement("span");
+
+      target.className = "gem-touch-target";
+      target.dataset.gemTouchTarget = String(gemIndex);
+      target.setAttribute("aria-hidden", "true");
+      target.title = definition.name;
+      this.container.append(target);
+      return target;
+    });
+  }
+
+  getTargetGemIndex(eventTarget) {
+    const target = eventTarget?.closest?.("[data-gem-touch-target]");
+
+    if (!target || !this.container.contains(target)) {
+      return null;
+    }
+
+    const gemIndex = Number(target.dataset.gemTouchTarget);
+    return Number.isInteger(gemIndex) ? gemIndex : null;
+  }
+
+  updateTouchTargets() {
+    const bounds = this.container.getBoundingClientRect();
+
+    this.modules.forEach(({ mesh }, index) => {
+      const target = this.touchTargets[index];
+
+      mesh.getWorldPosition(this.projectedPoint);
+      this.projectedPoint.project(this.camera);
+
+      const isVisible =
+        this.projectedPoint.z >= -1 && this.projectedPoint.z <= 1;
+
+      target.hidden = !isVisible;
+      if (!isVisible) {
+        return;
+      }
+
+      target.style.left = `${
+        (this.projectedPoint.x * 0.5 + 0.5) * bounds.width
+      }px`;
+      target.style.top = `${
+        (-this.projectedPoint.y * 0.5 + 0.5) * bounds.height
+      }px`;
+    });
   }
 
   getOrbitAngle(clientX, clientY) {

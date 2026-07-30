@@ -31,8 +31,18 @@ class ModuleGemCard {
       throw new Error("Configurazione gemma modulo incompleta.");
     }
 
+    this.interactionElement = this.createInteractionElement();
     this.createScene();
     this.bindInteraction();
+  }
+
+  createInteractionElement() {
+    const interactionElement = document.createElement("span");
+
+    interactionElement.className = "module-card__gem-interaction";
+    interactionElement.setAttribute("aria-hidden", "true");
+    this.element.append(interactionElement);
+    return interactionElement;
   }
 
   createScene() {
@@ -71,11 +81,26 @@ class ModuleGemCard {
       "aria-label",
       `${moduleName}. Trascina per ruotare la gemma 3D.`,
     );
-    this.element.addEventListener("pointerdown", this.onPointerDown);
-    this.element.addEventListener("pointermove", this.onPointerMove);
-    this.element.addEventListener("pointerup", this.onPointerEnd);
-    this.element.addEventListener("pointercancel", this.onPointerEnd);
-    this.element.addEventListener("lostpointercapture", this.onPointerEnd);
+    this.interactionElement.addEventListener(
+      "pointerdown",
+      this.onPointerDown,
+    );
+    this.interactionElement.addEventListener(
+      "pointermove",
+      this.onPointerMove,
+    );
+    this.interactionElement.addEventListener(
+      "pointerup",
+      this.onPointerEnd,
+    );
+    this.interactionElement.addEventListener(
+      "pointercancel",
+      this.onPointerEnd,
+    );
+    this.interactionElement.addEventListener(
+      "lostpointercapture",
+      this.onPointerEnd,
+    );
     this.element.addEventListener("keydown", this.onKeyDown);
   }
 
@@ -84,6 +109,7 @@ class ModuleGemCard {
       return;
     }
 
+    event.preventDefault();
     this.pointerId = event.pointerId;
     this.lastPointerPosition = {
       x: event.clientX,
@@ -93,7 +119,7 @@ class ModuleGemCard {
     this.angularVelocity.x = 0;
     this.angularVelocity.y = 0;
     this.element.classList.add("is-rotating");
-    this.element.setPointerCapture(event.pointerId);
+    this.interactionElement.setPointerCapture(event.pointerId);
   };
 
   onPointerMove = (event) => {
@@ -105,6 +131,7 @@ class ModuleGemCard {
       return;
     }
 
+    event.preventDefault();
     const deltaX = event.clientX - this.lastPointerPosition.x;
     const deltaY = event.clientY - this.lastPointerPosition.y;
     const deltaTime = Math.max(
@@ -138,8 +165,8 @@ class ModuleGemCard {
       return;
     }
 
-    if (this.element.hasPointerCapture(event.pointerId)) {
-      this.element.releasePointerCapture(event.pointerId);
+    if (this.interactionElement.hasPointerCapture(event.pointerId)) {
+      this.interactionElement.releasePointerCapture(event.pointerId);
     }
 
     this.pointerId = null;
