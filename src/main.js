@@ -59,6 +59,11 @@ if (spaceBackgroundCanvas) {
   const MOBILE_ORBIT_OPACITY = 0.16;
   const ORBIT_OPACITY = 0.075;
   const ORBIT_SCREEN_EDGE_RATIO = 0.94;
+  const SHORT_VIEWPORT_MAX_HEIGHT = 1000;
+  const SHORT_VIEWPORT_MIN_HEIGHT = 520;
+  const SHORT_VIEWPORT_ORBIT_OFFSET = 3;
+  const WIDE_VIEWPORT_MAX_ASPECT = 1.75;
+  const WIDE_VIEWPORT_MIN_ASPECT = 1.35;
   const GEM_HINT_DURATION_SECONDS = 1.35;
   const GEM_HINT_DELAY_MIN_SECONDS = 2.4;
   const GEM_HINT_DELAY_MAX_SECONDS = 4.2;
@@ -698,6 +703,7 @@ if (spaceBackgroundCanvas) {
     updateCamera() {
       const cameraProgress = smoothstep(0.06, 0.84, this.progress);
       const verticalProgress = smoothstep(0.18, 0.9, this.progress);
+      const titleSeparation = this.getTitleSeparation();
 
       this.camera.position.set(
         0.001,
@@ -730,8 +736,31 @@ if (spaceBackgroundCanvas) {
         sideViewScale *
         mobileScaleBoost;
       this.world.scale.setScalar(worldScale);
-      this.world.position.y = lerp(-1.35, 0, cameraProgress);
+      this.world.position.y =
+        lerp(-1.35, 0, cameraProgress) - titleSeparation;
       this.world.rotation.y = lerp(-0.08, 0.14, cameraProgress);
+    }
+
+    getTitleSeparation() {
+      const shortViewportStrength =
+        1 -
+        smoothstep(
+          SHORT_VIEWPORT_MIN_HEIGHT,
+          SHORT_VIEWPORT_MAX_HEIGHT,
+          this.container.clientHeight,
+        );
+      const wideViewportStrength = smoothstep(
+        WIDE_VIEWPORT_MIN_ASPECT,
+        WIDE_VIEWPORT_MAX_ASPECT,
+        this.camera.aspect,
+      );
+
+      return (
+        shortViewportStrength *
+        wideViewportStrength *
+        (1 - smoothstep(0.04, 0.32, this.progress)) *
+        SHORT_VIEWPORT_ORBIT_OFFSET
+      );
     }
 
     updateObjects(deltaSeconds) {

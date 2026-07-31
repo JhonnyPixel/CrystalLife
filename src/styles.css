@@ -84,15 +84,17 @@ h3 {
 
 .orbit-story {
   position: relative;
-  height: 320svh;
+  height: 320vh;
+  height: 320dvh;
   background: transparent;
 }
 
 .orbit-story__stage {
   position: sticky;
   top: 0;
-  height: 100svh;
-  min-height: 640px;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
   overflow: hidden;
   isolation: isolate;
   background: transparent;
@@ -254,7 +256,7 @@ h3 {
   margin-top: 0.1em;
   color: var(--text);
   font-family: "DM Sans", sans-serif;
-  font-size: clamp(4.2rem, 13vw, 10.5rem);
+  font-size: clamp(4.2rem, min(13vw, 24dvh), 10.5rem);
   font-weight: 700;
   line-height: 0.82;
   letter-spacing: -0.052em;
@@ -1693,11 +1695,8 @@ h3 {
 
 @media (max-width: 860px) {
   .orbit-story {
-    height: 280svh;
-  }
-
-  .orbit-story__stage {
-    min-height: 560px;
+    height: 280vh;
+    height: 280dvh;
   }
 
   .hero-copy {
