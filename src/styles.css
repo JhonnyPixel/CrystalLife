@@ -109,6 +109,50 @@ h3 {
   display: block;
   width: 100%;
   height: 100%;
+  opacity: 0;
+  transition: opacity 420ms ease;
+}
+
+.orbit-canvas.is-ready canvas {
+  opacity: 1;
+}
+
+.orbit-loader {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  display: grid;
+  gap: 1rem;
+  align-content: center;
+  justify-items: center;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.82);
+  animation: reveal-orbit-loader 180ms 140ms both;
+  transition:
+    opacity 320ms ease,
+    visibility 0s linear 320ms;
+}
+
+.orbit-loader__mark {
+  width: 3.25rem;
+  border: 1px solid rgba(208, 188, 255, 0.2);
+  border-top-color: rgba(208, 188, 255, 0.95);
+  border-radius: 50%;
+  aspect-ratio: 1;
+  box-shadow: 0 0 28px rgba(139, 92, 246, 0.25);
+  animation: orbit-loader-spin 900ms linear infinite;
+}
+
+.orbit-canvas.is-ready .orbit-loader,
+.orbit-canvas.is-fallback .orbit-loader {
+  visibility: hidden;
+  opacity: 0;
+  animation: none;
 }
 
 .gem-touch-target {
@@ -164,6 +208,22 @@ h3 {
   background:
     radial-gradient(circle at 35% 30%, #d0bcff, #8b5cf6 45%, #23005c 100%);
   box-shadow: 0 0 80px rgba(139, 92, 246, 0.42);
+}
+
+@keyframes reveal-orbit-loader {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes orbit-loader-spin {
+  to {
+    transform: rotate(1turn);
+  }
 }
 
 .hero-copy {

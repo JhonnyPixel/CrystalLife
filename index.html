@@ -38,9 +38,20 @@
             data-orbit-canvas
             role="application"
             tabindex="0"
+            aria-busy="true"
             aria-disabled="true"
             aria-label="Sistema orbitale interattivo. In vista verticale, trascina una gemma lungo la sua orbita e rilasciala per lanciarla. Un clic la ferma e apre la sua scheda."
-          ></div>
+          >
+            <div
+              class="orbit-loader"
+              data-orbit-loader
+              role="status"
+              aria-live="polite"
+            >
+              <span class="orbit-loader__mark" aria-hidden="true"></span>
+              <span data-orbit-loader-label>Preparazione dell'orbita</span>
+            </div>
+          </div>
           <p class="sr-only" data-gem-status aria-live="polite"></p>
 
           <div class="hero-copy">

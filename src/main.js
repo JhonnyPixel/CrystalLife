@@ -88,6 +88,27 @@ if (spaceBackgroundCanvas) {
     return progress * progress * (3 - 2 * progress);
   };
 
+  const initializeWhenNear = (element, initialize) => {
+    if (!("IntersectionObserver" in window)) {
+      initialize();
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) {
+          return;
+        }
+
+        observer.disconnect();
+        initialize();
+      },
+      { rootMargin: "480px 0px" },
+    );
+
+    observer.observe(element);
+  };
+
   const createInteractionGlowTexture = () => {
     const canvas = document.createElement("canvas");
 
@@ -143,6 +164,10 @@ if (spaceBackgroundCanvas) {
       this.lastHintIndex = null;
       this.nextHintAt = Number.POSITIVE_INFINITY;
       this.interactionGlowTexture = createInteractionGlowTexture();
+      this.loaderLabel = container.querySelector(
+        "[data-orbit-loader-label]",
+      );
+      this.hasEnvironment = false;
       this.modules = [];
       this.orbits = [];
 
@@ -152,12 +177,11 @@ if (spaceBackgroundCanvas) {
       this.createLights();
       this.createInfoCard();
       this.createInteractions();
-      void this.loadCoreModel();
-      void this.loadGemModels();
+      this.observeSize();
       this.observeVisibility();
       this.resize();
 
-      window.addEventListener("resize", this.resize, { passive: true });
+      void this.loadModels();
       this.frameId = requestAnimationFrame(this.render);
     }
 
@@ -226,22 +250,61 @@ if (spaceBackgroundCanvas) {
       this.world.add(this.core);
     }
 
+    async loadModels() {
+      const tasks = [
+        { label: "Centro", promise: this.loadCoreModel() },
+        ...this.modules.map((module) => ({
+          label: module.definition.name,
+          promise: this.loadGemModel(module),
+        })),
+      ];
+      const results = await Promise.allSettled(
+        tasks.map(({ promise }) => promise),
+      );
+      const failedTasks = results
+        .map((result, index) => ({ result, task: tasks[index] }))
+        .filter(({ result }) => result.status === "rejected");
+
+      failedTasks.forEach(({ result, task }) => {
+        console.warn(
+          `Modello Verge3D "${task.label}" non disponibile.`,
+          result.reason,
+        );
+      });
+
+      this.finishLoading(failedTasks.length);
+    }
+
+    finishLoading(failedModelCount) {
+      this.container.classList.add("is-ready");
+      this.container.setAttribute("aria-busy", "false");
+
+      if (!this.loaderLabel) {
+        return;
+      }
+
+      this.loaderLabel.textContent = failedModelCount
+        ? "Orbita pronta con grafica semplificata"
+        : "Orbita pronta";
+    }
+
+    applyModelEnvironment(factory) {
+      if (this.hasEnvironment || !factory.applyEnvironment(this.scene)) {
+        return;
+      }
+
+      this.app.updateEnvironment(this.scene.worldMaterial);
+      this.hasEnvironment = true;
+    }
+
     async loadCoreModel() {
       const factory = new GemModelFactory({
         binaryUrl: GEM_ASSETS.center.binaryUrl,
         modelUrl: GEM_MODEL_URLS.center,
       });
 
-      try {
-        await factory.load();
-      } catch {
-        return;
-      }
-
-      if (factory.applyEnvironment(this.scene)) {
-        this.app.updateEnvironment(this.scene.worldMaterial);
-      }
-
+      await factory.load();
+      this.applyModelEnvironment(factory);
       this.replaceCoreFallback(factory);
     }
 
@@ -405,38 +468,15 @@ if (spaceBackgroundCanvas) {
       });
     }
 
-    async loadGemModels() {
-      const loadResults = await Promise.allSettled(
-        this.modules.map(async (module) => {
-          const factory = new GemModelFactory({
-            binaryUrl: module.definition.binaryUrl,
-            modelUrl: module.definition.modelUrl,
-          });
-
-          await factory.load();
-          return factory;
-        }),
-      );
-      let hasEnvironment = false;
-
-      loadResults.forEach((result, index) => {
-        const module = this.modules[index];
-
-        if (result.status === "rejected") {
-          console.warn(
-            `Modello Verge3D "${module.definition.name}" non disponibile.`,
-            result.reason,
-          );
-          return;
-        }
-
-        if (!hasEnvironment && result.value.applyEnvironment(this.scene)) {
-          this.app.updateEnvironment(this.scene.worldMaterial);
-          hasEnvironment = true;
-        }
-
-        this.replaceGemFallback(module, result.value);
+    async loadGemModel(module) {
+      const factory = new GemModelFactory({
+        binaryUrl: module.definition.binaryUrl,
+        modelUrl: module.definition.modelUrl,
       });
+
+      await factory.load();
+      this.applyModelEnvironment(factory);
+      this.replaceGemFallback(module, factory);
     }
 
     replaceGemFallback(module, modelFactory) {
@@ -822,6 +862,8 @@ if (spaceBackgroundCanvas) {
     resize = () => {
       const width = Math.max(this.container.clientWidth, 1);
       const height = Math.max(this.container.clientHeight, 1);
+
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.8));
       this.camera.aspect = width / height;
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(width, height, false);
@@ -831,9 +873,36 @@ if (spaceBackgroundCanvas) {
       this.orbits.forEach(({ material }) => {
         material.opacity = orbitOpacity;
       });
-      this.updateOrbitLayout();
       this.updateCamera();
+      this.updateOrbitLayout();
     };
+
+    requestResize = () => {
+      if (this.resizeFrameId) {
+        return;
+      }
+
+      this.resizeFrameId = requestAnimationFrame(() => {
+        this.resizeFrameId = null;
+        this.resize();
+      });
+    };
+
+    observeSize() {
+      window.addEventListener("orientationchange", this.requestResize, {
+        passive: true,
+      });
+
+      if (!("ResizeObserver" in window)) {
+        window.addEventListener("resize", this.requestResize, {
+          passive: true,
+        });
+        return;
+      }
+
+      this.resizeObserver = new ResizeObserver(this.requestResize);
+      this.resizeObserver.observe(this.container);
+    }
 
     updateOrbitLayout() {
       this.modules.forEach((module) => {
@@ -855,6 +924,13 @@ if (spaceBackgroundCanvas) {
       }
 
       outerOrbit.visible = !shouldMergeOuterOrbit;
+      this.modules.forEach((module) => {
+        module.mesh.position.set(
+          Math.cos(module.angle) * module.orbitDistance,
+          0,
+          Math.sin(module.angle) * module.orbitDistance,
+        );
+      });
       this.infoCard?.updateOrbitLabel();
     }
 
@@ -965,18 +1041,26 @@ if (spaceBackgroundCanvas) {
   new ScrollStory(storyElement, orbitExperience);
 
   if (moduleCardElements.length > 0) {
-    new ModuleGemGallery(moduleCardElements);
+    initializeWhenNear(moduleCardElements[0].parentElement, () => {
+      try {
+        new ModuleGemGallery(moduleCardElements);
+      } catch (error) {
+        console.error("Impossibile inizializzare le gemme dei moduli.", error);
+      }
+    });
   }
 
   if (featureOrbitElement) {
-    try {
-      new FeatureOrbitPreview(featureOrbitElement);
-    } catch (error) {
-      console.error(
-        "Impossibile inizializzare l'orbita della funzionalità.",
-        error,
-      );
-      featureOrbitElement.classList.add("is-fallback");
-    }
+    initializeWhenNear(featureOrbitElement, () => {
+      try {
+        new FeatureOrbitPreview(featureOrbitElement);
+      } catch (error) {
+        console.error(
+          "Impossibile inizializzare l'orbita della funzionalità.",
+          error,
+        );
+        featureOrbitElement.classList.add("is-fallback");
+      }
+    });
   }
 })();
