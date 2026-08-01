@@ -20,6 +20,10 @@ import {
 import { GEM_ASSETS } from "./gem-assets.js";
 import { styleGemMaterials } from "./gem-materials.js";
 import { GemModelFactory } from "./gem-model.js";
+import {
+  observeRenderVisibility,
+  RenderBudget,
+} from "./render-performance.js";
 
 const MODEL_SIZE = 1.05;
 const DRAG_SENSITIVITY = 0.011;
@@ -31,7 +35,13 @@ const CORE_BLOOM_THRESHOLD = 0.1;
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
 class ModuleGemCard {
-  constructor(element, prefersReducedMotion, renderer, camera) {
+  constructor(
+    element,
+    prefersReducedMotion,
+    renderer,
+    camera,
+    usePostProcessing,
+  ) {
     this.element = element;
     this.asset = GEM_ASSETS[element.dataset.gemModel];
     this.modelUrl = this.asset?.modelUrl;
@@ -41,6 +51,9 @@ class ModuleGemCard {
     this.lastPointerPosition = null;
     this.angularVelocity = { x: 0, y: 0 };
     this.renderSize = { width: 0, height: 0 };
+    this.renderer = renderer;
+    this.camera = camera;
+    this.usePostProcessing = usePostProcessing;
 
     if (!this.modelUrl) {
       throw new Error("Configurazione gemma modulo incompleta.");
@@ -48,7 +61,9 @@ class ModuleGemCard {
 
     this.interactionElement = this.createInteractionElement();
     this.createScene();
-    this.createPostProcessing(renderer, camera);
+    if (this.usePostProcessing) {
+      this.createPostProcessing(renderer, camera);
+    }
     this.bindInteraction();
   }
 
@@ -282,6 +297,11 @@ class ModuleGemCard {
   }
 
   render(width, height) {
+    if (!this.usePostProcessing) {
+      this.renderer.render(this.scene, this.camera);
+      return;
+    }
+
     const renderWidth = Math.max(Math.round(width), 1);
     const renderHeight = Math.max(Math.round(height), 1);
 
@@ -305,8 +325,13 @@ export class ModuleGemGallery {
       throw new Error("Griglia moduli mancante.");
     }
 
-    this.isVisible = true;
+    this.isVisible = false;
     this.lastFrameTime = performance.now();
+    this.renderBudget = new RenderBudget({
+      desktopPixelRatio: 1.5,
+      mobileFps: 60,
+      mobilePixelRatio: 1.5,
+    });
     this.prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
@@ -319,6 +344,7 @@ export class ModuleGemGallery {
           this.prefersReducedMotion,
           this.renderer,
           this.camera,
+          true,
         ),
     );
     this.observeSize();
@@ -349,7 +375,7 @@ export class ModuleGemGallery {
 
     this.renderer = this.app.renderer;
     this.renderer.setClearColor(0x000000, 0);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+    this.renderer.setPixelRatio(this.renderBudget.getPixelRatio());
     this.renderer.outputColorSpace = SRGBColorSpace;
     this.renderer.toneMapping = PbrNeutralToneMapping;
     this.renderer.toneMappingExposure = 1;
@@ -396,26 +422,29 @@ export class ModuleGemGallery {
   }
 
   observeVisibility() {
-    if (!("IntersectionObserver" in window)) {
-      return;
-    }
-
-    this.visibilityObserver = new IntersectionObserver(
-      ([entry]) => {
-        this.isVisible = entry.isIntersecting;
-        if (this.isVisible) {
+    this.visibilityObserver = observeRenderVisibility(
+      this.grid,
+      (isVisible) => {
+        this.isVisible = isVisible;
+        if (isVisible) {
           this.lastFrameTime = performance.now();
+          this.renderBudget.reset();
+          if (this.frameId === null) {
+            this.frameId = requestAnimationFrame(this.render);
+          }
+        } else if (this.frameId !== null) {
+          cancelAnimationFrame(this.frameId);
+          this.frameId = null;
         }
       },
-      { rootMargin: "20% 0px" },
     );
-    this.visibilityObserver.observe(this.grid);
   }
 
   resize = () => {
     const width = Math.max(this.grid.clientWidth, 1);
     const height = Math.max(this.grid.clientHeight, 1);
 
+    this.renderer.setPixelRatio(this.renderBudget.getPixelRatio());
     this.renderer.setSize(width, height, false);
   };
 
@@ -439,21 +468,30 @@ export class ModuleGemGallery {
   }
 
   render = (frameTime) => {
+    this.frameId = null;
+
+    if (!this.isVisible) {
+      return;
+    }
+
+    if (!this.renderBudget.shouldRender(frameTime)) {
+      this.frameId = requestAnimationFrame(this.render);
+      return;
+    }
+
     const deltaSeconds = Math.min(
       (frameTime - this.lastFrameTime) / 1000,
       0.05,
     );
     this.lastFrameTime = frameTime;
 
-    if (this.isVisible) {
-      const gridBounds = this.grid.getBoundingClientRect();
+    const gridBounds = this.grid.getBoundingClientRect();
 
-      this.renderer.setScissorTest(false);
-      this.renderer.clear(true, true, true);
-      this.renderer.setScissorTest(true);
-      this.cards.forEach((card) => card.update(deltaSeconds));
-      this.cards.forEach((card) => this.renderCard(card, gridBounds));
-    }
+    this.renderer.setScissorTest(false);
+    this.renderer.clear(true, true, true);
+    this.renderer.setScissorTest(true);
+    this.cards.forEach((card) => card.update(deltaSeconds));
+    this.cards.forEach((card) => this.renderCard(card, gridBounds));
 
     this.frameId = requestAnimationFrame(this.render);
   };

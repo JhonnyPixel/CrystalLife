@@ -28,15 +28,26 @@ import {
 import { FeatureOrbitPreview } from "./feature-orbit-preview.js";
 import { GemInfoCard } from "./gem-info-card.js";
 import { GemInteractionController } from "./gem-interaction.js";
+import { HeroGemGallery } from "./hero-gem-gallery.js";
+import { HeroShowcase } from "./hero-showcase.js";
+import { initializeIPhoneShells } from "./iphone-shell.js";
 import { styleGemMaterials } from "./gem-materials.js";
 import { GemModelFactory } from "./gem-model.js";
 import { ModuleGemGallery } from "./module-gem-gallery.js";
+import {
+  initializeMobilePerformanceMode,
+  observeRenderVisibility,
+  RenderBudget,
+  scheduleIdleTask,
+} from "./render-performance.js";
 import { SpaceBackground } from "./space-background.js";
 import {
   styleSunMaterials,
   SunEffects,
 } from "./sun-effects.js";
 import "./styles.css";
+
+initializeMobilePerformanceMode();
 
 const spaceBackgroundCanvas = document.querySelector(
   "[data-space-background]",
@@ -46,12 +57,43 @@ if (spaceBackgroundCanvas) {
   new SpaceBackground(spaceBackgroundCanvas);
 }
 
+const showcaseElement = document.querySelector("[data-showcase-story]");
+const heroOrbitElement = document.querySelector("[data-hero-orbit]");
+let heroOrbitPreview;
+
+if (heroOrbitElement) {
+  try {
+    heroOrbitPreview = new FeatureOrbitPreview(heroOrbitElement);
+  } catch (error) {
+    console.error(
+      "Impossibile inizializzare l'orbita della dashboard.",
+      error,
+    );
+    heroOrbitElement.classList.add("is-fallback");
+  }
+}
+
+scheduleIdleTask(() => {
+  void initializeIPhoneShells();
+
+  document
+    .querySelectorAll("[data-hero-gem-gallery], [data-hero-detail-gallery]")
+    .forEach((element) => {
+      try {
+        new HeroGemGallery(element);
+      } catch (error) {
+        console.error("Impossibile inizializzare le gemme della hero.", error);
+      }
+    });
+});
+
 (() => {
   "use strict";
 
   const CORE_MODEL_SIZE = 1.76;
-  const INTERACTION_START = 0.78;
+  const INTERACTION_START = 0.42;
   const CAMERA_FOV_DEGREES = 58;
+  const INITIAL_CAMERA_HEIGHT = 24;
   const FINAL_CAMERA_HEIGHT = 14;
   const MOBILE_VIEWPORT_QUERY =
     "(max-width: 560px), (hover: none) and (pointer: coarse)";
@@ -59,11 +101,6 @@ if (spaceBackgroundCanvas) {
   const MOBILE_ORBIT_OPACITY = 0.16;
   const ORBIT_OPACITY = 0.075;
   const ORBIT_SCREEN_EDGE_RATIO = 0.94;
-  const SHORT_VIEWPORT_MAX_HEIGHT = 1000;
-  const SHORT_VIEWPORT_MIN_HEIGHT = 520;
-  const SHORT_VIEWPORT_ORBIT_OFFSET = 3;
-  const WIDE_VIEWPORT_MAX_ASPECT = 1.75;
-  const WIDE_VIEWPORT_MIN_ASPECT = 1.35;
   const GEM_HINT_DURATION_SECONDS = 1.35;
   const GEM_HINT_DELAY_MIN_SECONDS = 2.4;
   const GEM_HINT_DELAY_MAX_SECONDS = 4.2;
@@ -91,27 +128,6 @@ if (spaceBackgroundCanvas) {
   const smoothstep = (start, end, value) => {
     const progress = clamp((value - start) / (end - start));
     return progress * progress * (3 - 2 * progress);
-  };
-
-  const initializeWhenNear = (element, initialize) => {
-    if (!("IntersectionObserver" in window)) {
-      initialize();
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting) {
-          return;
-        }
-
-        observer.disconnect();
-        initialize();
-      },
-      { rootMargin: "480px 0px" },
-    );
-
-    observer.observe(element);
   };
 
   const createInteractionGlowTexture = () => {
@@ -156,10 +172,18 @@ if (spaceBackgroundCanvas) {
     constructor(container) {
       this.container = container;
       this.progress = 0;
+      this.introProgress = 0;
       this.elapsedSeconds = 0;
       this.lastFrameTime = performance.now();
       this.isVisible = true;
       this.isInteractive = false;
+      this.isIntroVisible = true;
+      this.isStoryVisible = false;
+      this.renderBudget = new RenderBudget({
+        desktopPixelRatio: 1.8,
+        mobileFps: 60,
+        mobilePixelRatio: 1.35,
+      });
       this.prefersReducedMotion = window.matchMedia(
         "(prefers-reduced-motion: reduce)",
       ).matches;
@@ -173,6 +197,7 @@ if (spaceBackgroundCanvas) {
         "[data-orbit-loader-label]",
       );
       this.hasEnvironment = false;
+      this.modelLoadStarted = false;
       this.modules = [];
       this.orbits = [];
 
@@ -185,10 +210,20 @@ if (spaceBackgroundCanvas) {
       this.observeSize();
       this.observeVisibility();
       this.resize();
+      this.container.classList.add("is-renderable");
 
-      void this.loadModels();
+      scheduleIdleTask(this.loadModelsOnce);
       this.frameId = requestAnimationFrame(this.render);
     }
+
+    loadModelsOnce = () => {
+      if (this.modelLoadStarted) {
+        return;
+      }
+
+      this.modelLoadStarted = true;
+      void this.loadModels();
+    };
 
     createScene() {
       this.scene = new Scene();
@@ -198,6 +233,7 @@ if (spaceBackgroundCanvas) {
         0.1,
         100,
       );
+      this.camera.up.set(0, 0, -1);
       this.app = new App(this.container, {
         alpha: true,
         antialias: true,
@@ -208,13 +244,23 @@ if (spaceBackgroundCanvas) {
       this.app.setCamera(this.camera);
       this.renderer = this.app.renderer;
       this.renderer.setClearColor(0x000000, 0);
-      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.8));
+      this.renderer.setPixelRatio(this.renderBudget.getPixelRatio());
       this.renderer.toneMapping = AgXBlenderToneMapping;
       this.renderer.toneMappingExposure = 1;
       this.renderer.shadowMap.enabled = false;
       this.renderer.shadowMap.type = PCFSoftShadowMap;
 
       this.renderer.outputColorSpace = SRGBColorSpace;
+      this.renderer.domElement.addEventListener(
+        "webglcontextlost",
+        this.onContextLost,
+        false,
+      );
+      this.renderer.domElement.addEventListener(
+        "webglcontextrestored",
+        this.onContextRestored,
+        false,
+      );
 
       this.world = new Group();
       this.scene.add(this.world);
@@ -555,6 +601,60 @@ if (spaceBackgroundCanvas) {
       }
     }
 
+    onContextLost = (event) => {
+      event.preventDefault();
+      this.container.classList.add("is-fallback");
+
+      if (this.frameId !== null) {
+        cancelAnimationFrame(this.frameId);
+        this.frameId = null;
+      }
+    };
+
+    onContextRestored = () => {
+      this.container.classList.remove("is-fallback");
+      this.resize();
+      this.requestRender();
+    };
+
+    setIntroProgress(progress) {
+      this.introProgress = clamp(progress);
+      if (this.introProgress > 0.005) {
+        this.loadModelsOnce();
+      }
+      this.requestRender();
+    }
+
+    setIntroVisible(isVisible) {
+      this.isIntroVisible = isVisible;
+      this.requestRender();
+    }
+
+    setStoryVisible(isVisible) {
+      this.isStoryVisible = isVisible;
+      if (isVisible) {
+        this.loadModelsOnce();
+      }
+      this.container.classList.toggle("is-presented", isVisible);
+      this.requestRender();
+    }
+
+    isSceneActive() {
+      return (
+        this.isVisible &&
+        (this.isStoryVisible ||
+          (this.isIntroVisible && this.introProgress > 0.005))
+      );
+    }
+
+    requestRender() {
+      if (this.frameId === null && this.isSceneActive()) {
+        this.lastFrameTime = performance.now();
+        this.renderBudget.reset();
+        this.frameId = requestAnimationFrame(this.render);
+      }
+    }
+
     startDraggingGem = (gemIndex) => {
       const module = this.modules[gemIndex];
 
@@ -701,31 +801,27 @@ if (spaceBackgroundCanvas) {
     }
 
     updateCamera() {
-      const cameraProgress = smoothstep(0.06, 0.84, this.progress);
-      const verticalProgress = smoothstep(0.18, 0.9, this.progress);
-      const titleSeparation = this.getTitleSeparation();
+      const introZoomProgress = smoothstep(0.04, 0.94, this.introProgress);
+      const storyZoomProgress = smoothstep(0.02, 0.62, this.progress);
+      const introCameraHeight = lerp(
+        42,
+        INITIAL_CAMERA_HEIGHT,
+        introZoomProgress,
+      );
 
       this.camera.position.set(
         0.001,
-        lerp(4.5, FINAL_CAMERA_HEIGHT, verticalProgress),
-        lerp(17, 0.08, cameraProgress),
+        lerp(introCameraHeight, FINAL_CAMERA_HEIGHT, storyZoomProgress),
+        0.01,
       );
+      this.camera.lookAt(0, 0, 0);
 
-      const targetY = lerp(-1.35, 0, cameraProgress);
-      this.camera.lookAt(0, targetY, 0);
-
-      const startingResponsiveScale = clamp(this.camera.aspect * 1.5, 0.78, 1);
-      const endingResponsiveScale = clamp(this.camera.aspect, 0.56, 1);
-      const responsiveScale = lerp(
-        startingResponsiveScale,
-        endingResponsiveScale,
-        smoothstep(0.16, 0.92, this.progress),
-      );
-      const apparentScale = lerp(0.79, 1, smoothstep(0.08, 0.9, this.progress));
-      const sideViewScale = lerp(
-        1.12,
+      const responsiveScale = clamp(this.camera.aspect, 0.56, 1);
+      const introApparentScale = lerp(0.58, 0.79, introZoomProgress);
+      const apparentScale = lerp(
+        introApparentScale,
         1,
-        smoothstep(0.08, 0.58, this.progress),
+        smoothstep(0.08, 0.9, this.progress),
       );
       const mobileScaleBoost = this.mobileViewport.matches
         ? MOBILE_ORBIT_SCALE_BOOST
@@ -733,34 +829,10 @@ if (spaceBackgroundCanvas) {
       const worldScale =
         responsiveScale *
         apparentScale *
-        sideViewScale *
         mobileScaleBoost;
       this.world.scale.setScalar(worldScale);
-      this.world.position.y =
-        lerp(-1.35, 0, cameraProgress) - titleSeparation;
-      this.world.rotation.y = lerp(-0.08, 0.14, cameraProgress);
-    }
-
-    getTitleSeparation() {
-      const shortViewportStrength =
-        1 -
-        smoothstep(
-          SHORT_VIEWPORT_MIN_HEIGHT,
-          SHORT_VIEWPORT_MAX_HEIGHT,
-          this.container.clientHeight,
-        );
-      const wideViewportStrength = smoothstep(
-        WIDE_VIEWPORT_MIN_ASPECT,
-        WIDE_VIEWPORT_MAX_ASPECT,
-        this.camera.aspect,
-      );
-
-      return (
-        shortViewportStrength *
-        wideViewportStrength *
-        (1 - smoothstep(0.04, 0.32, this.progress)) *
-        SHORT_VIEWPORT_ORBIT_OFFSET
-      );
+      this.world.position.y = 0;
+      this.world.rotation.y = 0.14;
     }
 
     updateObjects(deltaSeconds) {
@@ -810,9 +882,9 @@ if (spaceBackgroundCanvas) {
           );
         }
 
-        module.hintGlow.material.opacity = hintStrength * 0.78;
+        module.hintGlow.material.opacity = lerp(0.2, 0.82, hintStrength);
         module.hintGlow.scale.setScalar(
-          definition.size * lerp(4, 5.2, hintStrength),
+          definition.size * lerp(5, 7.2, hintStrength),
         );
 
         if (!module.isDragging && !module.isStopped) {
@@ -871,19 +943,28 @@ if (spaceBackgroundCanvas) {
     }
 
     render = (frameTime) => {
+      this.frameId = null;
+
+      if (!this.isSceneActive()) {
+        return;
+      }
+
+      if (!this.renderBudget.shouldRender(frameTime)) {
+        this.frameId = requestAnimationFrame(this.render);
+        return;
+      }
+
       const deltaSeconds = Math.min(
         (frameTime - this.lastFrameTime) / 1000,
         0.05,
       );
       this.lastFrameTime = frameTime;
 
-      if (this.isVisible) {
-        this.updateCamera();
-        this.updateObjects(deltaSeconds);
-        this.interactions?.updateTouchTargets();
-        this.renderer.render(this.scene, this.camera);
-        this.infoCard?.updatePosition(this.camera);
-      }
+      this.updateCamera();
+      this.updateObjects(deltaSeconds);
+      this.interactions?.updateTouchTargets();
+      this.renderer.render(this.scene, this.camera);
+      this.infoCard?.updatePosition(this.camera);
 
       this.frameId = requestAnimationFrame(this.render);
     };
@@ -892,7 +973,7 @@ if (spaceBackgroundCanvas) {
       const width = Math.max(this.container.clientWidth, 1);
       const height = Math.max(this.container.clientHeight, 1);
 
-      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.8));
+      this.renderer.setPixelRatio(this.renderBudget.getPixelRatio());
       this.camera.aspect = width / height;
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(width, height, false);
@@ -985,20 +1066,17 @@ if (spaceBackgroundCanvas) {
     }
 
     observeVisibility() {
-      if (!("IntersectionObserver" in window)) {
-        return;
-      }
-
-      this.visibilityObserver = new IntersectionObserver(
-        ([entry]) => {
-          this.isVisible = entry.isIntersecting;
-          if (this.isVisible) {
+      this.visibilityObserver = observeRenderVisibility(
+        this.container,
+        (isVisible) => {
+          this.isVisible = isVisible;
+          if (isVisible) {
             this.lastFrameTime = performance.now();
+            this.renderBudget.reset();
+            this.requestRender();
           }
         },
-        { rootMargin: "20% 0px" },
       );
-      this.visibilityObserver.observe(this.container);
     }
   }
 
@@ -1007,6 +1085,8 @@ if (spaceBackgroundCanvas) {
       this.element = element;
       this.experience = experience;
       this.isTicking = false;
+      this.lastProgress = null;
+      this.lastStoryVisibility = null;
 
       this.update();
       window.addEventListener("scroll", this.requestUpdate, { passive: true });
@@ -1024,31 +1104,55 @@ if (spaceBackgroundCanvas) {
 
     update = () => {
       const rect = this.element.getBoundingClientRect();
-      const scrollableDistance = Math.max(
-        this.element.offsetHeight - window.innerHeight,
-        1,
+      const progress = clamp(
+        (window.innerHeight - rect.top) /
+          Math.max(this.element.offsetHeight, 1),
       );
-      const progress = clamp(-rect.top / scrollableDistance);
+      const hasEnteredViewport = rect.top < window.innerHeight;
+      const exitVisibility = smoothstep(
+        window.innerHeight * 0.52,
+        window.innerHeight * 0.96,
+        rect.bottom,
+      );
+      const storyVisibility = hasEnteredViewport ? exitVisibility : 0;
 
-      this.experience?.setProgress(progress);
-      this.writeStyles(progress);
+      if (
+        progress !== this.lastProgress ||
+        storyVisibility !== this.lastStoryVisibility
+      ) {
+        this.lastProgress = progress;
+        this.lastStoryVisibility = storyVisibility;
+        this.experience?.setProgress(progress);
+        this.experience?.setStoryVisible(storyVisibility > 0.72);
+        this.writeStyles(progress, storyVisibility);
+      }
+
       this.isTicking = false;
     };
 
-    writeStyles(progress) {
-      const titleOpacity = 1 - smoothstep(0.06, 0.24, progress);
-      const titleShift = lerp(0, -32, smoothstep(0.04, 0.28, progress));
+    writeStyles(progress, storyVisibility) {
       const cueOpacity = 1 - smoothstep(0.01, 0.1, progress);
-      const continueOpacity = smoothstep(0.66, 0.82, progress);
-      const interactionOpacity = smoothstep(
-        INTERACTION_START - 0.04,
-        INTERACTION_START + 0.04,
-        progress,
-      );
+      const continueOpacity =
+        smoothstep(0.68, 0.84, progress) * storyVisibility;
+      const interactionOpacity =
+        smoothstep(
+          INTERACTION_START - 0.04,
+          INTERACTION_START + 0.04,
+          progress,
+        ) * storyVisibility;
 
       const style = document.documentElement.style;
-      style.setProperty("--title-opacity", titleOpacity.toFixed(3));
-      style.setProperty("--title-shift", `${titleShift.toFixed(2)}px`);
+      style.setProperty(
+        "--orbit-story-opacity",
+        storyVisibility.toFixed(3),
+      );
+      if (storyVisibility > 0) {
+        style.setProperty("--orbit-clip-radius", "145vmax");
+        style.setProperty("--orbit-clip-x", "50%");
+        style.setProperty("--orbit-clip-y", "50%");
+        style.setProperty("--orbit-canvas-shift-x", "0vw");
+        style.setProperty("--orbit-canvas-shift-y", "0vh");
+      }
       style.setProperty("--cue-opacity", cueOpacity.toFixed(3));
       style.setProperty("--continue-opacity", continueOpacity.toFixed(3));
       style.setProperty(
@@ -1067,10 +1171,22 @@ if (spaceBackgroundCanvas) {
     canvasElement.classList.add("is-fallback");
   }
 
+  if (showcaseElement) {
+    new HeroShowcase(showcaseElement, {
+      onDeviceScaleChange: (scale) => heroOrbitPreview?.setRenderScale(scale),
+      onOrbitProgressChange: (progress, isVisible) => {
+        heroOrbitPreview?.setAnimationEnabled(progress <= 0.005);
+        orbitExperience?.setIntroProgress(progress);
+        orbitExperience?.setIntroVisible(isVisible);
+      },
+      orbitOriginElement: heroOrbitElement,
+    });
+  }
+
   new ScrollStory(storyElement, orbitExperience);
 
   if (moduleCardElements.length > 0) {
-    initializeWhenNear(moduleCardElements[0].parentElement, () => {
+    scheduleIdleTask(() => {
       try {
         new ModuleGemGallery(moduleCardElements);
       } catch (error) {
@@ -1080,7 +1196,7 @@ if (spaceBackgroundCanvas) {
   }
 
   if (featureOrbitElement) {
-    initializeWhenNear(featureOrbitElement, () => {
+    scheduleIdleTask(() => {
       try {
         new FeatureOrbitPreview(featureOrbitElement);
       } catch (error) {

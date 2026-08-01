@@ -21,6 +21,10 @@ import {
 import { styleGemMaterials } from "./gem-materials.js";
 import { GemModelFactory } from "./gem-model.js";
 import {
+  observeRenderVisibility,
+  RenderBudget,
+} from "./render-performance.js";
+import {
   styleSunMaterials,
   SunEffects,
 } from "./sun-effects.js";
@@ -79,8 +83,16 @@ export class FeatureOrbitPreview {
   constructor(element) {
     this.element = element;
     this.modules = [];
+    this.renderScale = 1;
     this.lastFrameTime = performance.now();
-    this.isVisible = true;
+    this.isVisible = false;
+    this.isAnimationEnabled = true;
+    this.frameId = null;
+    this.renderBudget = new RenderBudget({
+      desktopPixelRatio: 3,
+      mobileFps: 60,
+      mobilePixelRatio: 1.4,
+    });
     this.prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
@@ -92,8 +104,9 @@ export class FeatureOrbitPreview {
     this.observeSize();
     this.observeVisibility();
     this.resize();
+    this.element.classList.add("is-renderable");
     void this.loadModels();
-    this.frameId = requestAnimationFrame(this.render);
+    this.requestRender();
   }
 
   createScene() {
@@ -113,11 +126,21 @@ export class FeatureOrbitPreview {
 
     this.renderer = this.app.renderer;
     this.renderer.setClearColor(0x000000, 0);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.35));
+    this.renderer.setPixelRatio(this.renderBudget.getPixelRatio());
     this.renderer.outputColorSpace = SRGBColorSpace;
     this.renderer.toneMapping = AgXBlenderToneMapping;
     this.renderer.toneMappingExposure = 1;
     this.renderer.shadowMap.enabled = false;
+    this.renderer.domElement.addEventListener(
+      "webglcontextlost",
+      this.onContextLost,
+      false,
+    );
+    this.renderer.domElement.addEventListener(
+      "webglcontextrestored",
+      this.onContextRestored,
+      false,
+    );
 
     this.world = new Group();
     this.scene.add(this.world);
@@ -231,6 +254,7 @@ export class FeatureOrbitPreview {
     }
 
     this.element.classList.add("is-ready");
+    this.renderStaticFrame();
   }
 
   async loadCoreModel() {
@@ -285,40 +309,117 @@ export class FeatureOrbitPreview {
   }
 
   observeVisibility() {
-    if (!("IntersectionObserver" in window)) {
-      return;
-    }
-
-    this.visibilityObserver = new IntersectionObserver(
-      ([entry]) => {
-        this.isVisible = entry.isIntersecting;
+    this.visibilityObserver = observeRenderVisibility(
+      this.element,
+      (isVisible) => {
+        this.isVisible = isVisible;
         this.lastFrameTime = performance.now();
+        this.renderBudget.reset();
+
+        if (isVisible) {
+          this.requestRender();
+        } else if (this.frameId !== null) {
+          cancelAnimationFrame(this.frameId);
+          this.frameId = null;
+        }
       },
-      { rootMargin: "20% 0px" },
     );
-    this.visibilityObserver.observe(this.element);
   }
 
   resize = () => {
     const width = Math.max(this.element.clientWidth, 1);
     const height = Math.max(this.element.clientHeight, 1);
-
+    this.renderer.setPixelRatio(
+      this.renderBudget.getPixelRatio(this.renderScale),
+    );
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
   };
 
+  setRenderScale(scale) {
+    const nextScale = Math.min(6, Math.max(1, Math.ceil(scale * 2) / 2));
+
+    if (nextScale === this.renderScale) {
+      return;
+    }
+
+    this.renderScale = nextScale;
+    this.resize();
+  }
+
+  setAnimationEnabled(isEnabled) {
+    if (isEnabled === this.isAnimationEnabled) {
+      return;
+    }
+
+    this.isAnimationEnabled = isEnabled;
+
+    if (isEnabled) {
+      this.requestRender();
+    } else if (this.frameId !== null) {
+      cancelAnimationFrame(this.frameId);
+      this.frameId = null;
+    }
+  }
+
+  requestRender() {
+    if (
+      !this.isVisible ||
+      !this.isAnimationEnabled ||
+      this.frameId !== null
+    ) {
+      return;
+    }
+
+    this.lastFrameTime = performance.now();
+    this.renderBudget.reset();
+    this.frameId = requestAnimationFrame(this.render);
+  }
+
+  renderStaticFrame() {
+    this.update(0);
+    this.renderer.render(this.scene, this.camera);
+  }
+
+  onContextLost = (event) => {
+    event.preventDefault();
+    this.element.classList.add("is-fallback");
+
+    if (this.frameId !== null) {
+      cancelAnimationFrame(this.frameId);
+      this.frameId = null;
+    }
+  };
+
+  onContextRestored = () => {
+    this.element.classList.remove("is-fallback");
+    this.resize();
+
+    this.renderStaticFrame();
+    this.requestRender();
+  };
+
   render = (frameTime) => {
+    this.frameId = null;
+
+    if (!this.isVisible || !this.isAnimationEnabled) {
+      return;
+    }
+
+    if (!this.renderBudget.shouldRender(frameTime)) {
+      this.frameId = requestAnimationFrame(this.render);
+      return;
+    }
+
     const deltaSeconds = Math.min(
       (frameTime - this.lastFrameTime) / 1000,
       MAX_DELTA_SECONDS,
     );
     this.lastFrameTime = frameTime;
 
-    if (this.isVisible) {
-      this.update(deltaSeconds);
-      this.renderer.render(this.scene, this.camera);
-    }
+    this.update(deltaSeconds);
+    this.renderer.render(this.scene, this.camera);
 
     this.frameId = requestAnimationFrame(this.render);
   };

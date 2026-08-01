@@ -1,3 +1,5 @@
+import { RenderBudget } from "./render-performance.js";
+
 const VERTEX_SHADER = `
   attribute vec2 a_position;
   varying vec2 v_texCoord;
@@ -157,8 +159,6 @@ float starShape = pow(
   }
 `;
 
-const MAX_PIXEL_RATIO = 1.35;
-
 const createShader = (gl, type, source) => {
   const shader = gl.createShader(type);
 
@@ -212,12 +212,18 @@ export class SpaceBackground {
     this.pointer = { x: 0, y: 0 };
     this.frameId = null;
     this.isVisible = !document.hidden;
+    this.renderBudget = new RenderBudget({
+      desktopPixelRatio: 1.35,
+      mobileFps: 20,
+      mobilePixelRatio: 1.25,
+    });
     this.prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
+    this.isStatic = this.prefersReducedMotion || this.renderBudget.isMobile;
 
     if (!this.gl) {
-      canvas.hidden = true;
+      canvas.classList.add("is-static");
       return;
     }
 
@@ -225,7 +231,7 @@ export class SpaceBackground {
       this.setupRenderer();
     } catch (error) {
       console.warn(error);
-      canvas.hidden = true;
+      canvas.classList.add("is-static");
       return;
     }
 
@@ -276,10 +282,7 @@ export class SpaceBackground {
       return;
     }
 
-    const pixelRatio = Math.min(
-      window.devicePixelRatio || 1,
-      MAX_PIXEL_RATIO,
-    );
+    const pixelRatio = this.renderBudget.getPixelRatio();
     const width = Math.max(
       Math.round(this.canvas.clientWidth * pixelRatio),
       1,
@@ -316,6 +319,7 @@ export class SpaceBackground {
     this.isVisible = !document.hidden;
 
     if (this.isVisible && this.frameId === null) {
+      this.renderBudget.reset();
       this.frameId = requestAnimationFrame(this.render);
     }
   };
@@ -327,8 +331,13 @@ export class SpaceBackground {
       return;
     }
 
+    if (!this.renderBudget.shouldRender(frameTime)) {
+      this.frameId = requestAnimationFrame(this.render);
+      return;
+    }
+
     const gl = this.gl;
-    const time = this.prefersReducedMotion ? 0 : frameTime * 0.001;
+    const time = this.isStatic ? 0 : frameTime * 0.001;
 
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     gl.useProgram(this.program);
@@ -345,7 +354,7 @@ export class SpaceBackground {
     );
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
-    if (!this.prefersReducedMotion) {
+    if (!this.isStatic) {
       this.frameId = requestAnimationFrame(this.render);
     }
   };
