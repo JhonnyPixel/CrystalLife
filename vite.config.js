@@ -57,8 +57,21 @@ const findGemAsset = (directoryName) => {
   const availableFiles = readdirSync(directoryPath).sort((left, right) =>
     left.localeCompare(right, "it", { sensitivity: "base" })
   );
+
+  // Prefer .glb (self-contained binary) over .gltf + .bin
+  const glbName = availableFiles.find((fileName) =>
+    /\.glb$/i.test(fileName)
+  );
+
+  if (glbName) {
+    return {
+      binaryPath: null,
+      modelPath: getPublicGemPath(directoryName, glbName),
+    };
+  }
+
   const modelName = availableFiles.find((fileName) =>
-    /\.(?:gltf|glb)$/i.test(fileName)
+    /\.gltf$/i.test(fileName)
   );
 
   if (!modelName) {

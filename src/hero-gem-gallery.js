@@ -1,12 +1,12 @@
 import {
-  AgXBlenderToneMapping,
+  AgXToneMapping,
   AmbientLight,
-  App,
   DirectionalLight,
   PerspectiveCamera,
   Scene,
   SRGBColorSpace,
-} from "verge3d";
+  WebGLRenderer,
+} from "three";
 import { GEM_ASSETS } from "./gem-assets.js";
 import { styleGemMaterials } from "./gem-materials.js";
 import { GemModelFactory } from "./gem-model.js";
@@ -130,21 +130,18 @@ export class HeroGemGallery {
 
     this.camera = new PerspectiveCamera(34, 1, 0.1, 30);
     this.camera.position.set(0, 0, 5.2);
-    this.app = new App(this.canvasLayer, {
+    this.renderer = new WebGLRenderer({
       alpha: true,
       antialias: true,
       powerPreference: "high-performance",
       preserveDrawingBuffer: this.isStatic,
     });
-    this.app.registerServiceKeys = false;
-    this.app.scene = new Scene();
-    this.app.setCamera(this.camera);
+    this.canvasLayer.append(this.renderer.domElement);
 
-    this.renderer = this.app.renderer;
     this.renderer.setClearColor(0x000000, 0);
     this.renderer.setPixelRatio(this.renderBudget.getPixelRatio());
     this.renderer.outputColorSpace = SRGBColorSpace;
-    this.renderer.toneMapping = AgXBlenderToneMapping;
+    this.renderer.toneMapping = AgXToneMapping;
     this.renderer.toneMappingExposure = 1.1;
     this.renderer.autoClear = false;
     this.renderer.shadowMap.enabled = false;
@@ -252,32 +249,21 @@ export class HeroGemGallery {
 
   replaceCanvasWithSnapshot(canvas, blob) {
     if (!blob) {
-      this.hasStaticSnapshot = false;
       return;
     }
 
-    const snapshot = new Image();
     const snapshotUrl = URL.createObjectURL(blob);
+    const image = document.createElement("img");
 
-    snapshot.className = "hero-gem-gallery__snapshot";
-    snapshot.alt = "";
-    snapshot.decoding = "async";
-    snapshot.src = snapshotUrl;
-    snapshot.setAttribute("aria-hidden", "true");
+    image.className = "hero-gem-gallery__snapshot";
+    image.alt = "";
+    image.src = snapshotUrl;
+    canvas.replaceWith(image);
 
-    snapshot.decode().catch(() => undefined).then(() => {
-      URL.revokeObjectURL(snapshotUrl);
-
-      if (!canvas.isConnected) {
-        return;
-      }
-
-      canvas.replaceWith(snapshot);
-      this.resizeObserver?.disconnect();
-      this.visibilityObserver?.disconnect();
-      this.renderer.dispose();
-      this.renderer.forceContextLoss?.();
-    });
+    if (this.frameId !== null) {
+      cancelAnimationFrame(this.frameId);
+      this.frameId = null;
+    }
   }
 
   render = (frameTime) => {
@@ -287,31 +273,39 @@ export class HeroGemGallery {
       return;
     }
 
-    if (!this.renderBudget.shouldRender(frameTime)) {
-      this.frameId = requestAnimationFrame(this.render);
-      return;
-    }
-
     const deltaSeconds = Math.min(
       (frameTime - this.lastFrameTime) / 1000,
       MAX_DELTA_SECONDS,
     );
+
     this.lastFrameTime = frameTime;
+
+    if (!this.isStatic && !this.renderBudget.shouldRender(deltaSeconds)) {
+      this.frameId = requestAnimationFrame(this.render);
+      return;
+    }
 
     this.renderer.setScissorTest(false);
     this.renderer.clear(true, true, true);
     this.renderer.setScissorTest(true);
-    const visiblePreviews = this.previews.filter((preview) =>
-      isElementInViewport(preview.element),
-    );
 
-    visiblePreviews.forEach((preview) =>
-      preview.update(deltaSeconds, this.isStatic),
-    );
-    visiblePreviews.forEach((preview) => this.renderPreview(preview));
-    this.captureStaticFrame();
+    let hasVisiblePreview = false;
 
-    if (!this.isStatic) {
+    this.previews.forEach((preview) => {
+      preview.update(deltaSeconds, this.prefersReducedMotion);
+
+      if (isElementInViewport(preview.element, 80)) {
+        hasVisiblePreview = true;
+        this.renderPreview(preview);
+      }
+    });
+
+    if (this.isStatic && hasVisiblePreview) {
+      this.captureStaticFrame();
+      return;
+    }
+
+    if (!this.prefersReducedMotion) {
       this.frameId = requestAnimationFrame(this.render);
     }
   };

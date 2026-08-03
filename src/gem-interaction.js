@@ -1,4 +1,4 @@
-import { Plane, Raycaster, Vector2, Vector3 } from "verge3d";
+import { Plane, Raycaster, Vector2, Vector3 } from "three";
 import { GemSound } from "./gem-sound.js";
 
 const DRAG_THRESHOLD_PX = 6;

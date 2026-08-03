@@ -1,10 +1,10 @@
 import {
   Box3,
-  GLTFLoader,
   Group,
   LoadingManager,
   Vector3,
-} from "verge3d";
+} from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 const GEM_VISUAL_SCALE = 0.84;
 const modelLoadCache = new Map();

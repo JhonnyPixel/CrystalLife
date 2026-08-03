@@ -1,7 +1,6 @@
 import {
-  AgXBlenderToneMapping,
+  AgXToneMapping,
   AmbientLight,
-  App,
   DirectionalLight,
   DoubleSide,
   Group,
@@ -13,7 +12,8 @@ import {
   RingGeometry,
   Scene,
   SRGBColorSpace,
-} from "verge3d";
+  WebGLRenderer,
+} from "three";
 import {
   GEM_ASSETS,
   GEM_MODEL_URLS,
@@ -115,20 +115,17 @@ export class FeatureOrbitPreview {
     this.camera.position.set(0, 7.8, 0.01);
     this.camera.lookAt(0, 0, 0);
 
-    this.app = new App(this.element, {
+    this.renderer = new WebGLRenderer({
       alpha: true,
       antialias: true,
       powerPreference: "high-performance",
     });
-    this.app.registerServiceKeys = false;
-    this.app.scene = this.scene;
-    this.app.setCamera(this.camera);
+    this.element.append(this.renderer.domElement);
 
-    this.renderer = this.app.renderer;
     this.renderer.setClearColor(0x000000, 0);
     this.renderer.setPixelRatio(this.renderBudget.getPixelRatio());
     this.renderer.outputColorSpace = SRGBColorSpace;
-    this.renderer.toneMapping = AgXBlenderToneMapping;
+    this.renderer.toneMapping = AgXToneMapping;
     this.renderer.toneMappingExposure = 1;
     this.renderer.shadowMap.enabled = false;
     this.renderer.domElement.addEventListener(
@@ -240,18 +237,10 @@ export class FeatureOrbitPreview {
   }
 
   async loadModels() {
-    const results = await Promise.allSettled([
+    await Promise.allSettled([
       this.loadCoreModel(),
       ...this.modules.map((module) => this.loadModuleModel(module)),
     ]);
-    const environmentFactory = results
-      .filter((result) => result.status === "fulfilled")
-      .map((result) => result.value)
-      .find((factory) => factory?.applyEnvironment(this.scene));
-
-    if (environmentFactory) {
-      this.app.updateEnvironment(this.scene.worldMaterial);
-    }
 
     this.element.classList.add("is-ready");
     this.renderStaticFrame();

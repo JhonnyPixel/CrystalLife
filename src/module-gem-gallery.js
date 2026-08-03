@@ -1,22 +1,20 @@
 import {
   AmbientLight,
-  App,
-  BloomPass,
-  Detector,
   DirectionalLight,
-  EffectComposer,
   HalfFloatType,
-  LinearEncoding,
+  NeutralToneMapping,
   PerspectiveCamera,
-  PbrNeutralToneMapping,
   RGBAFormat,
-  RenderPass,
   Scene,
   SRGBColorSpace,
-  ToneMapPass,
   Vector2,
+  WebGLRenderer,
   WebGLRenderTarget,
-} from "verge3d";
+} from "three";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { GEM_ASSETS } from "./gem-assets.js";
 import { styleGemMaterials } from "./gem-materials.js";
 import { GemModelFactory } from "./gem-model.js";
@@ -89,15 +87,12 @@ class ModuleGemCard {
   }
 
   createPostProcessing(renderer, camera) {
-    const supportsHdr =
-      renderer.capabilities.isWebGL2 &&
-      Detector.checkHalfFloatTex(renderer, true);
+    const supportsHdr = renderer.capabilities.isWebGL2;
     const renderTargetOptions = {
       format: RGBAFormat,
       stencilBuffer: false,
       ...(supportsHdr
         ? {
-            encoding: LinearEncoding,
             type: HalfFloatType,
           }
         : {}),
@@ -108,19 +103,19 @@ class ModuleGemCard {
       renderTargetOptions,
     );
     const renderPass = new RenderPass(this.scene, camera);
-    const bloomPass = new BloomPass(
+    const bloomPass = new UnrealBloomPass(
       new Vector2(1, 1),
       CORE_BLOOM_STRENGTH,
       CORE_BLOOM_RADIUS,
       CORE_BLOOM_THRESHOLD,
-      renderTargetOptions,
     );
+    const outputPass = new OutputPass();
 
     this.composer = new EffectComposer(renderer, renderTarget);
     this.composer.setPixelRatio(renderer.getPixelRatio());
     this.composer.addPass(renderPass);
     this.composer.addPass(bloomPass);
-    this.composer.addPass(new ToneMapPass());
+    this.composer.addPass(outputPass);
   }
 
   async load() {
@@ -364,25 +359,21 @@ export class ModuleGemGallery {
     this.camera = new PerspectiveCamera(34, 1, 0.1, 30);
     this.camera.position.set(0, 0, 5.2);
 
-    this.app = new App(this.canvasLayer, {
+    this.renderer = new WebGLRenderer({
       alpha: true,
       antialias: true,
       powerPreference: "high-performance",
     });
-    this.app.registerServiceKeys = false;
-    this.app.scene = this.scene;
-    this.app.setCamera(this.camera);
+    this.canvasLayer.append(this.renderer.domElement);
 
-    this.renderer = this.app.renderer;
     this.renderer.setClearColor(0x000000, 0);
     this.renderer.setPixelRatio(this.renderBudget.getPixelRatio());
     this.renderer.outputColorSpace = SRGBColorSpace;
-    this.renderer.toneMapping = PbrNeutralToneMapping;
+    this.renderer.toneMapping = NeutralToneMapping;
     this.renderer.toneMappingExposure = 1;
     this.renderer.autoClear = false;
     this.renderer.shadowMap.enabled = false;
     this.renderer.setScissorTest(true);
-
   }
 
   async load() {
@@ -397,14 +388,6 @@ export class ModuleGemGallery {
           this.cards[index].modelUrl,
           result.reason,
         );
-        return;
-      }
-
-      const cardScene = this.cards[index].scene;
-
-      if (result.value.applyEnvironment(cardScene)) {
-        this.app.scene = cardScene;
-        this.app.updateEnvironment(cardScene.worldMaterial);
       }
     });
 

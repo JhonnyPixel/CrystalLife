@@ -6,16 +6,15 @@ import {
   NormalBlending,
   PointLight,
   Vector3,
-} from "verge3d";
+} from "three";
+import MeshTransmissionMaterialImpl from "./transmissionmaterial.js";
 
-const GLASS_ALPHA = 0.62;
 const GLASS_CLEARCOAT = 0.9;
 const GLASS_CLEARCOAT_ROUGHNESS = 0.035;
 const GLASS_ENVIRONMENT_INTENSITY = 1.4;
 const GLASS_IOR = 1.52;
 const GLASS_ROUGHNESS = 0.045;
 const GLASS_SPECULAR_IOR_LEVEL = 0.65;
-const GLASS_TRANSMISSION = 1;
 const INNER_EMISSION_MAX_STRENGTH = 4;
 const INNER_EMISSION_MIN_STRENGTH = 1;
 const INNER_EMISSION_TARGET_LUMINANCE = 0.65;
@@ -24,82 +23,8 @@ const INNER_LIGHT_DECAY = 1.5;
 const INNER_LIGHT_DISTANCE_RATIO = 3.2;
 const INNER_LIGHT_INTENSITY = 1.8;
 
-const PRINCIPLED_LAYOUTS = new Map([
-  [
-    31,
-    {
-      alpha: 4,
-      baseColor: 0,
-      clearcoat: 19,
-      clearcoatRoughness: 20,
-      emission: 27,
-      emissionStrength: 28,
-      ior: 3,
-      roughness: 2,
-      specularIorLevel: 13,
-      transmission: 18,
-    },
-  ],
-  [
-    30,
-    {
-      alpha: 4,
-      baseColor: 0,
-      clearcoat: 18,
-      clearcoatRoughness: 19,
-      emission: 26,
-      emissionStrength: 27,
-      ior: 3,
-      roughness: 2,
-      specularIorLevel: 12,
-      transmission: 17,
-    },
-  ],
-  [
-    29,
-    {
-      alpha: 4,
-      baseColor: 0,
-      clearcoat: 17,
-      clearcoatRoughness: 18,
-      emission: 25,
-      emissionStrength: 26,
-      ior: 3,
-      roughness: 2,
-      specularIorLevel: 11,
-      transmission: 16,
-    },
-  ],
-]);
-
-const getPrincipledNode = (material) =>
-  material.nodeGraph?.nodes?.find(
-    ({ type }) => type === "BSDF_PRINCIPLED_BL",
-  ) ?? null;
-
-const getEmissionNode = (material) =>
-  material.nodeGraph?.nodes?.find(
-    ({ type }) => type === "EMISSION_BL",
-  ) ?? null;
-
-const getPrincipledLayout = (node) =>
-  PRINCIPLED_LAYOUTS.get(node?.inputs?.length) ?? null;
-
 const getEmissionStrength = (material) => {
-  const node = getPrincipledNode(material);
-  const layout = getPrincipledLayout(node);
-
-  if (layout) {
-    return Number(node.inputs[layout.emissionStrength]) || 0;
-  }
-
-  const emissionNode = getEmissionNode(material);
-
-  if (emissionNode) {
-    return Number(emissionNode.inputs[1]) || 0;
-  }
-
-  return Number(material.emissiveIntensity) || 0;
+  return Number(material.emissiveIntensity) || (material.emissive ? 1 : 0);
 };
 
 const getMeshVolume = (mesh) => {
@@ -140,27 +65,12 @@ const findInnerMaterials = (visual, materials) => {
   return new Set(smallestMeshMaterials.filter(Boolean));
 };
 
-const updateNodeMaterial = (material, updateInputs) => {
-  const node = getPrincipledNode(material);
-  const layout = getPrincipledLayout(node);
-
-  if (!layout) {
-    return false;
-  }
-
-  updateInputs(node.inputs, layout);
-  material.updateNodeGraph?.();
-  material.needsUpdate = true;
-  return true;
-};
-
 const getEmissionStrengthForColor = (color) => {
   const relativeLuminance =
     0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
-  const strength = INNER_EMISSION_TARGET_LUMINANCE / Math.max(
-    relativeLuminance,
-    Number.EPSILON,
-  );
+  const strength =
+    INNER_EMISSION_TARGET_LUMINANCE /
+    Math.max(relativeLuminance, Number.EPSILON);
 
   return Math.min(
     INNER_EMISSION_MAX_STRENGTH,
@@ -168,80 +78,49 @@ const getEmissionStrengthForColor = (color) => {
   );
 };
 
-const updateEmissionNodeMaterial = (material, color, emissionStrength) => {
-  const node = getEmissionNode(material);
+/**
+ * Create a MeshTransmissionMaterialImpl configured for gem glass appearance.
+ * The material requires a `buffer` uniform to be set each frame with an FBO
+ * texture of the scene rendered behind the transparent object.
+ */
+const createGlassMaterial = (color) => {
+  const material = new MeshTransmissionMaterialImpl(6, false);
 
-  if (!node) {
-    return false;
-  }
-
-  node.inputs[0] = getNodeColor(color);
-  node.inputs[1] = emissionStrength;
-  material.updateNodeGraph?.();
-  material.needsUpdate = true;
-  return true;
-};
-
-const styleGlassMaterial = (material) => {
-  updateNodeMaterial(material, (inputs, layout) => {
-    inputs[layout.alpha] = GLASS_ALPHA;
-    inputs[layout.ior] = GLASS_IOR;
-    inputs[layout.specularIorLevel] = Math.max(
-      Number(inputs[layout.specularIorLevel]) || 0,
-      GLASS_SPECULAR_IOR_LEVEL,
-    );
-    inputs[layout.roughness] = Math.min(
-      Number(inputs[layout.roughness]) || GLASS_ROUGHNESS,
-      GLASS_ROUGHNESS,
-    );
-    inputs[layout.transmission] = Math.max(
-      Number(inputs[layout.transmission]) || 0,
-      GLASS_TRANSMISSION,
-    );
-    inputs[layout.clearcoat] = Math.max(
-      Number(inputs[layout.clearcoat]) || 0,
-      GLASS_CLEARCOAT,
-    );
-    inputs[layout.clearcoatRoughness] = GLASS_CLEARCOAT_ROUGHNESS;
-  });
-
-  material.blending = NormalBlending;
-  material.depthWrite = false;
-  material.envMapIntensity = Math.max(
-    Number(material.envMapIntensity) || 0,
-    GLASS_ENVIRONMENT_INTENSITY,
-  );
-  material.opacity = 1;
+  // Physical base properties
+  material.color = color ?? new Color(0xffffff);
+  material.roughness = GLASS_ROUGHNESS;
+  material.ior = GLASS_IOR;
+  material.clearcoat = GLASS_CLEARCOAT;
+  material.clearcoatRoughness = GLASS_CLEARCOAT_ROUGHNESS;
+  material.specularIntensity = GLASS_SPECULAR_IOR_LEVEL;
+  material.envMapIntensity = GLASS_ENVIRONMENT_INTENSITY;
   material.side = DoubleSide;
+  material.depthWrite = false;
   material.transparent = true;
-  material.needsUpdate = true;
-};
+  material.blending = NormalBlending;
 
-const getNodeColor = (color) => [color.r, color.g, color.b, 1];
+  // Transmission uniforms (managed by the custom shader)
+  material._transmission = 1;
+  material.thickness = 0.5;
+  material.chromaticAberration = 0.06;
+  material.anisotropicBlur = 0.1;
+  material.distortion = 0.0;
+  material.distortionScale = 0.3;
+  material.temporalDistortion = 0.0;
+  material.attenuationDistance = 0.5;
+  material.attenuationColor = color ?? new Color(0xffffff);
+
+  material.needsUpdate = true;
+  return material;
+};
 
 const styleInnerMaterial = (material, color) => {
   const emissionStrength = getEmissionStrengthForColor(color);
-  let updatedNodeMaterial = updateNodeMaterial(
-    material,
-    (inputs, layout) => {
-      inputs[layout.alpha] = 1;
-      inputs[layout.baseColor] = getNodeColor(color);
-      inputs[layout.emission] = getNodeColor(color);
-      inputs[layout.transmission] = 0;
-      inputs[layout.emissionStrength] = emissionStrength;
-    },
-  );
 
-  if (!updatedNodeMaterial) {
-    updatedNodeMaterial = updateEmissionNodeMaterial(
-      material,
-      color,
-      emissionStrength,
-    );
+  if (material.color) {
+    material.color.copy(color);
   }
-
-  if (!updatedNodeMaterial && material.emissive) {
-    material.color?.copy(color);
+  if (material.emissive) {
     material.emissive.copy(color);
     material.emissiveIntensity = emissionStrength;
   }
@@ -260,23 +139,17 @@ const getCoreColor = (innerMaterials, fallbackColor) => {
   }
 
   for (const material of innerMaterials) {
-    const node = getPrincipledNode(material);
-    const layout = getPrincipledLayout(node);
-    const emissionNode = getEmissionNode(material);
-    const emission = layout
-      ? node.inputs[layout.emission]
-      : emissionNode?.inputs[0];
+    if (material.emissive) {
+      const color = material.emissive.clone();
+      const strongestChannel = Math.max(color.r, color.g, color.b);
 
-    if (!Array.isArray(emission)) {
-      continue;
+      if (strongestChannel > 0) {
+        color.multiplyScalar(1 / strongestChannel);
+        return color;
+      }
     }
-
-    const color = new Color(emission[0], emission[1], emission[2]);
-    const strongestChannel = Math.max(color.r, color.g, color.b);
-
-    if (strongestChannel > 0) {
-      color.multiplyScalar(1 / strongestChannel);
-      return color;
+    if (material.color) {
+      return material.color.clone();
     }
   }
 
@@ -323,11 +196,39 @@ export const styleGemMaterials = ({
   const innerMaterials = findInnerMaterials(visual, materials);
   const coreColor = getCoreColor(innerMaterials, color);
 
-  materials.forEach((material) => {
-    if (innerMaterials.has(material)) {
-      styleInnerMaterial(material, coreColor);
-    } else {
-      styleGlassMaterial(material);
+  visual.traverse((object) => {
+    if (!object.isMesh) {
+      return;
+    }
+
+    if (Array.isArray(object.material)) {
+      object.material = object.material.map((mat) => {
+        if (innerMaterials.has(mat)) {
+          styleInnerMaterial(mat, coreColor);
+          return mat;
+        }
+        const glassMat = createGlassMaterial(coreColor);
+        const matIdx = materials.indexOf(mat);
+
+        if (matIdx !== -1) {
+          materials[matIdx] = glassMat;
+        }
+        return glassMat;
+      });
+    } else if (object.material) {
+      const mat = object.material;
+
+      if (innerMaterials.has(mat)) {
+        styleInnerMaterial(mat, coreColor);
+      } else {
+        const glassMat = createGlassMaterial(coreColor);
+        const matIdx = materials.indexOf(mat);
+
+        if (matIdx !== -1) {
+          materials[matIdx] = glassMat;
+        }
+        object.material = glassMat;
+      }
     }
   });
 

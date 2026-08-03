@@ -1,8 +1,7 @@
 import {
   AdditiveBlending,
-  AgXBlenderToneMapping,
+  AgXToneMapping,
   AmbientLight,
-  App,
   CanvasTexture,
   Color,
   DirectionalLight,
@@ -20,7 +19,8 @@ import {
   Sprite,
   SpriteMaterial,
   SRGBColorSpace,
-} from "verge3d";
+  WebGLRenderer,
+} from "three";
 import {
   GEM_ASSETS,
   GEM_MODEL_URLS,
@@ -234,20 +234,18 @@ scheduleIdleTask(() => {
         100,
       );
       this.camera.up.set(0, 0, -1);
-      this.app = new App(this.container, {
+      this.renderer = new WebGLRenderer({
         alpha: true,
         antialias: true,
         powerPreference: "high-performance",
       });
-      this.app.registerServiceKeys = false;
-      this.app.scene = this.scene;
-      this.app.setCamera(this.camera);
-      this.renderer = this.app.renderer;
+      this.container.append(this.renderer.domElement);
       this.renderer.setClearColor(0x000000, 0);
       this.renderer.setPixelRatio(this.renderBudget.getPixelRatio());
-      this.renderer.toneMapping = AgXBlenderToneMapping;
+      this.renderer.toneMapping = AgXToneMapping;
       this.renderer.toneMappingExposure = 1;
       this.renderer.shadowMap.enabled = false;
+      this.renderer.shadowMap.type = PCFSoftShadowMap;
       this.renderer.shadowMap.type = PCFSoftShadowMap;
 
       this.renderer.outputColorSpace = SRGBColorSpace;
@@ -344,7 +342,6 @@ scheduleIdleTask(() => {
         return;
       }
 
-      this.app.updateEnvironment(this.scene.worldMaterial);
       this.hasEnvironment = true;
     }
 
