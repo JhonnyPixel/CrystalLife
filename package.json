@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "three": "^0.185.1",
     "verge3d": "^4.13.0"
   },
   "devDependencies": {
