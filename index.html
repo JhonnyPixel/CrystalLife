@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="it">
+<html lang="it" class="is-page-loading">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -16,9 +16,47 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..900&display=swap"
       rel="stylesheet"
     />
+    <link
+      rel="preload"
+      href="./gem-images/crystal-sprite.webp"
+      as="image"
+      type="image/webp"
+      media="(max-width: 700px), (hover: none) and (pointer: coarse)"
+    />
+    <link
+      rel="preload"
+      href="./gem-images/mobile-orbit.webp"
+      as="image"
+      type="image/webp"
+      media="(max-width: 700px), (hover: none) and (pointer: coarse)"
+    />
   </head>
 
   <body>
+    <div
+      class="page-loader"
+      data-page-loader
+      role="status"
+      aria-live="polite"
+      aria-label="Caricamento di CrystalLife"
+    >
+      <div class="page-loader__content">
+        <span class="page-loader__visual" aria-hidden="true">
+          <span class="page-loader__spinner"></span>
+        </span>
+        <strong class="page-loader__brand">
+          <span
+            class="page-loader__brand-crystal liquid-glass-text"
+            data-text="Crystal"
+          >Crystal</span><span class="page-loader__brand-life">Life</span>
+        </strong>
+        <span class="page-loader__label">Preparazione esperienza</span>
+        <span class="page-loader__track" aria-hidden="true">
+          <span></span>
+        </span>
+      </div>
+    </div>
+
     <canvas
       class="space-background"
       data-space-background
@@ -180,7 +218,12 @@
                           <div
                             class="phone-orbit-map hero-orbit-preview"
                             data-hero-orbit
-                          ></div>
+                          >
+                            <span
+                              class="hero-orbit-preview__static"
+                              aria-hidden="true"
+                            ></span>
+                          </div>
                           <strong class="phone-core-value">42%</strong>
                           <span class="phone-core-label">Core</span>
                           <div class="phone-progress"><i></i></div>
@@ -622,34 +665,7 @@
               role="img"
               aria-label="Anteprima di livelli, esperienza e continuità"
             >
-              <div class="app-preview app-preview--progress" aria-hidden="true">
-                <div class="app-preview__bar">
-                  <i></i>
-                  <strong>Oggi</strong>
-                  <span>Livello 07</span>
-                </div>
-                <div class="progress-core">
-                  <div
-                    class="feature-orbit-preview"
-                    data-feature-orbit
-                  ></div>
-                  <strong>42%</strong>
-                  <span>Core</span>
-                </div>
-                <div class="level-card">
-                  <span>
-                    <strong>Costruttore</strong>
-                    <small>180 XP alla prossima evoluzione</small>
-                  </span>
-                  <em>+25 XP</em>
-                </div>
-                <div class="streak-row">
-                  <span>12 giorni di continuità</span>
-                  <div>
-                    <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-                  </div>
-                </div>
-              </div>
+
             </div>
           </li>
 
@@ -823,6 +839,16 @@
     </footer>
 
     <noscript>
+      <style>
+        .page-loader {
+          display: none !important;
+        }
+
+        html.is-page-loading,
+        html.is-page-loading body {
+          overflow: auto !important;
+        }
+      </style>
       <p class="noscript-message">
         Attiva JavaScript per vedere l’esperienza orbitale.
       </p>

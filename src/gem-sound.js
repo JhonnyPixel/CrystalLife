@@ -1,4 +1,5 @@
 const GEM_FREQUENCIES = [261.63, 329.63, 392, 493.88, 587.33];
+const MASTER_VOLUME = 4.85;
 
 const SOUND_PROFILES = {
   grab: {
@@ -34,6 +35,7 @@ const SOUND_PROFILES = {
 export class GemSound {
   constructor() {
     this.context = null;
+    this.resumePromise = null;
   }
 
   unlock() {
@@ -41,14 +43,28 @@ export class GemSound {
       window.AudioContext ?? window.webkitAudioContext;
 
     if (!AudioContextClass) {
-      return;
+      return Promise.resolve(false);
     }
 
     this.context ??= new AudioContextClass();
 
-    if (this.context.state === "suspended") {
-      void this.context.resume();
+    if (this.context.state === "running") {
+      return Promise.resolve(true);
     }
+
+    if (this.context.state === "closed") {
+      return Promise.resolve(false);
+    }
+
+    this.resumePromise ??= this.context
+      .resume()
+      .then(() => this.context.state === "running")
+      .catch(() => false)
+      .finally(() => {
+        this.resumePromise = null;
+      });
+
+    return this.resumePromise;
   }
 
   play(gemIndex, action, intensity = 1) {
@@ -58,13 +74,32 @@ export class GemSound {
       return;
     }
 
+    if (this.context.state !== "running") {
+      void this.unlock().then((isReady) => {
+        if (isReady) {
+          this.playTone(gemIndex, profile, intensity);
+        }
+      });
+      return;
+    }
+
+    this.playTone(gemIndex, profile, intensity);
+  }
+
+  playTone(gemIndex, profile, intensity) {
+    const context = this.context;
+
+    if (!context || context.state !== "running") {
+      return;
+    }
+
     const normalizedIntensity = Math.min(1.35, Math.max(0.65, intensity));
     const baseFrequency =
       GEM_FREQUENCIES[gemIndex % GEM_FREQUENCIES.length];
-    const startTime = this.context.currentTime;
+    const startTime = context.currentTime;
     const endTime = startTime + profile.duration;
-    const oscillator = this.context.createOscillator();
-    const gain = this.context.createGain();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
 
     oscillator.type = profile.type;
     oscillator.frequency.setValueAtTime(
@@ -78,13 +113,13 @@ export class GemSound {
 
     gain.gain.setValueAtTime(0.0001, startTime);
     gain.gain.exponentialRampToValueAtTime(
-      profile.gain * normalizedIntensity,
+      profile.gain * normalizedIntensity * MASTER_VOLUME,
       startTime + 0.015,
     );
     gain.gain.exponentialRampToValueAtTime(0.0001, endTime);
 
     oscillator.connect(gain);
-    gain.connect(this.context.destination);
+    gain.connect(context.destination);
     oscillator.start(startTime);
     oscillator.stop(endTime + 0.02);
     oscillator.addEventListener(

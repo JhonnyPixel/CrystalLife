@@ -34,8 +34,11 @@ import { initializeIPhoneShells } from "./iphone-shell.js";
 import { styleGemMaterials } from "./gem-materials.js";
 import { GemModelFactory } from "./gem-model.js";
 import { ModuleGemGallery } from "./module-gem-gallery.js";
+import { PageLoader } from "./page-loader.js";
 import {
   initializeMobilePerformanceMode,
+  isIOSWebKitDevice,
+  MOBILE_PERFORMANCE_QUERY,
   observeRenderVisibility,
   RenderBudget,
   scheduleIdleTask,
@@ -47,14 +50,31 @@ import {
 } from "./sun-effects.js";
 import "./styles.css";
 
+const pageLoader = new PageLoader(
+  document.querySelector("[data-page-loader]"),
+);
+const useIOSWebGLFallback = isIOSWebKitDevice();
+const useStaticHeroPhoneVisuals = window.matchMedia(
+  MOBILE_PERFORMANCE_QUERY,
+).matches;
+
 initializeMobilePerformanceMode();
+document.documentElement.classList.toggle(
+  "uses-ios-webgl-fallback",
+  useIOSWebGLFallback,
+);
+const iPhoneShellsReady = initializeIPhoneShells();
 
 const spaceBackgroundCanvas = document.querySelector(
   "[data-space-background]",
 );
 
 if (spaceBackgroundCanvas) {
-  new SpaceBackground(spaceBackgroundCanvas);
+  if (useIOSWebGLFallback) {
+    spaceBackgroundCanvas.classList.add("is-static");
+  } else {
+    new SpaceBackground(spaceBackgroundCanvas);
+  }
 }
 
 const showcaseElement = document.querySelector("[data-showcase-story]");
@@ -62,30 +82,51 @@ const heroOrbitElement = document.querySelector("[data-hero-orbit]");
 let heroOrbitPreview;
 
 if (heroOrbitElement) {
-  try {
-    heroOrbitPreview = new FeatureOrbitPreview(heroOrbitElement);
-  } catch (error) {
-    console.error(
-      "Impossibile inizializzare l'orbita della dashboard.",
-      error,
-    );
-    heroOrbitElement.classList.add("is-fallback");
+  if (useStaticHeroPhoneVisuals) {
+    heroOrbitElement.classList.add("is-static");
+  } else {
+    try {
+      heroOrbitPreview = new FeatureOrbitPreview(heroOrbitElement);
+    } catch (error) {
+      console.error(
+        "Impossibile inizializzare l'orbita della dashboard.",
+        error,
+      );
+      heroOrbitElement.classList.add("is-fallback");
+    }
   }
 }
 
-scheduleIdleTask(() => {
-  void initializeIPhoneShells();
+const heroGalleryElements = [
+  ...document.querySelectorAll(
+    "[data-hero-gem-gallery], [data-hero-detail-gallery]",
+  ),
+];
+const initializeHeroGemGalleries = async (sequential) => {
+  for (const element of heroGalleryElements) {
+    try {
+      const gallery = new HeroGemGallery(element);
 
-  document
-    .querySelectorAll("[data-hero-gem-gallery], [data-hero-detail-gallery]")
-    .forEach((element) => {
-      try {
-        new HeroGemGallery(element);
-      } catch (error) {
-        console.error("Impossibile inizializzare le gemme della hero.", error);
+      if (sequential) {
+        await gallery.whenReady();
       }
-    });
-});
+    } catch (error) {
+      console.error("Impossibile inizializzare le gemme della hero.", error);
+    }
+  }
+};
+const useHeroGemSnapshots =
+  useStaticHeroPhoneVisuals && !useIOSWebGLFallback;
+const heroGalleriesReady = useHeroGemSnapshots
+  ? initializeHeroGemGalleries(true)
+  : Promise.resolve();
+let orbitModelsReady = Promise.resolve();
+
+if (!useStaticHeroPhoneVisuals) {
+  scheduleIdleTask(() => {
+    void initializeHeroGemGalleries(false);
+  });
+}
 
 (() => {
   "use strict";
@@ -104,6 +145,19 @@ scheduleIdleTask(() => {
   const GEM_HINT_DURATION_SECONDS = 1.35;
   const GEM_HINT_DELAY_MIN_SECONDS = 2.4;
   const GEM_HINT_DELAY_MAX_SECONDS = 4.2;
+  const GEM_BLOOM_STYLE = Object.freeze({
+    activeEmissionMultiplier: 1.35,
+    activeLightIntensity: 3.4,
+    activeOpacity: 0.9,
+    activeScale: 8,
+    emissionScale: 1.1,
+    fallbackActiveEmission: 0.95,
+    fallbackRestEmission: 0.34,
+    restLightIntensity: 1.75,
+    restOpacity: 0.34,
+    restScale: 6.2,
+  });
+  const PRIORITY_RENDER_DURATION_MS = 140;
   const storyElement = document.querySelector("[data-orbit-story]");
   const canvasElement = document.querySelector("[data-orbit-canvas]");
   const gemStatusElement = document.querySelector("[data-gem-status]");
@@ -130,7 +184,23 @@ scheduleIdleTask(() => {
     return progress * progress * (3 - 2 * progress);
   };
 
-  const createInteractionGlowTexture = () => {
+  const runModelTasksSequentially = async (tasks) => {
+    const results = [];
+
+    for (const task of tasks) {
+      try {
+        results.push({ status: "fulfilled", value: await task.run() });
+      } catch (reason) {
+        results.push({ status: "rejected", reason });
+      }
+
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
+
+    return results;
+  };
+
+  const createGemBloomTexture = () => {
     const canvas = document.createElement("canvas");
 
     canvas.width = 128;
@@ -157,6 +227,20 @@ scheduleIdleTask(() => {
     return texture;
   };
 
+  const preserveGemEmission = (materials) => {
+    materials.forEach((material) => {
+      const restEmission = Number(material.emissiveIntensity);
+
+      if (!Number.isFinite(restEmission) || restEmission <= 0) {
+        return;
+      }
+
+      material.userData.restEmissiveIntensity = restEmission;
+      material.userData.activeEmissiveIntensity =
+        restEmission * GEM_BLOOM_STYLE.activeEmissionMultiplier;
+    });
+  };
+
   const disposeRenderable = (root) => {
     root.traverse((object) => {
       object.geometry?.dispose();
@@ -169,8 +253,9 @@ scheduleIdleTask(() => {
   };
 
   class OrbitExperience {
-    constructor(container) {
+    constructor(container, { useDetailedModels = true } = {}) {
       this.container = container;
+      this.useDetailedModels = useDetailedModels;
       this.progress = 0;
       this.introProgress = 0;
       this.elapsedSeconds = 0;
@@ -179,10 +264,11 @@ scheduleIdleTask(() => {
       this.isInteractive = false;
       this.isIntroVisible = true;
       this.isStoryVisible = false;
+      this.priorityRenderUntil = 0;
       this.renderBudget = new RenderBudget({
         desktopPixelRatio: 1.8,
         mobileFps: 60,
-        mobilePixelRatio: 1.35,
+        mobilePixelRatio: 1.15,
       });
       this.prefersReducedMotion = window.matchMedia(
         "(prefers-reduced-motion: reduce)",
@@ -192,12 +278,12 @@ scheduleIdleTask(() => {
       this.hintStartedAt = 0;
       this.lastHintIndex = null;
       this.nextHintAt = Number.POSITIVE_INFINITY;
-      this.interactionGlowTexture = createInteractionGlowTexture();
+      this.gemBloomTexture = createGemBloomTexture();
       this.loaderLabel = container.querySelector(
         "[data-orbit-loader-label]",
       );
       this.hasEnvironment = false;
-      this.modelLoadStarted = false;
+      this.modelLoadPromise = null;
       this.modules = [];
       this.orbits = [];
 
@@ -212,18 +298,35 @@ scheduleIdleTask(() => {
       this.resize();
       this.container.classList.add("is-renderable");
 
-      scheduleIdleTask(this.loadModelsOnce);
+      if (!this.renderBudget.isMobile) {
+        scheduleIdleTask(this.loadModelsOnce);
+      }
       this.frameId = requestAnimationFrame(this.render);
     }
 
     loadModelsOnce = () => {
-      if (this.modelLoadStarted) {
-        return;
+      if (this.modelLoadPromise) {
+        return this.modelLoadPromise;
       }
 
-      this.modelLoadStarted = true;
-      void this.loadModels();
+      if (!this.useDetailedModels) {
+        this.modelLoadPromise = Promise.resolve();
+        this.finishLoading(0, "Orbita ottimizzata");
+        return this.modelLoadPromise;
+      }
+
+      this.modelLoadPromise = this.loadModels();
+      return this.modelLoadPromise;
     };
+
+    async warmUp() {
+      await this.loadModelsOnce();
+      this.updateCamera();
+      this.updateObjects(0);
+      await this.renderer.compileAsync(this.scene, this.camera);
+      this.renderer.render(this.scene, this.camera);
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
 
     createScene() {
       this.scene = new Scene();
@@ -236,8 +339,10 @@ scheduleIdleTask(() => {
       this.camera.up.set(0, 0, -1);
       this.renderer = new WebGLRenderer({
         alpha: true,
-        antialias: true,
-        powerPreference: "high-performance",
+        antialias: !this.renderBudget.isMobile,
+        powerPreference: this.renderBudget.isMobile
+          ? "low-power"
+          : "high-performance",
       });
       this.container.append(this.renderer.domElement);
       this.renderer.setClearColor(0x000000, 0);
@@ -301,15 +406,15 @@ scheduleIdleTask(() => {
 
     async loadModels() {
       const tasks = [
-        { label: "Centro", promise: this.loadCoreModel() },
+        { label: "Centro", run: () => this.loadCoreModel() },
         ...this.modules.map((module) => ({
           label: module.definition.name,
-          promise: this.loadGemModel(module),
+          run: () => this.loadGemModel(module),
         })),
       ];
-      const results = await Promise.allSettled(
-        tasks.map(({ promise }) => promise),
-      );
+      const results = this.renderBudget.isMobile
+        ? await runModelTasksSequentially(tasks)
+        : await Promise.allSettled(tasks.map(({ run }) => run()));
       const failedTasks = results
         .map((result, index) => ({ result, task: tasks[index] }))
         .filter(({ result }) => result.status === "rejected");
@@ -324,7 +429,7 @@ scheduleIdleTask(() => {
       this.finishLoading(failedTasks.length);
     }
 
-    finishLoading(failedModelCount) {
+    finishLoading(failedModelCount, readyLabel = null) {
       this.container.classList.add("is-ready");
       this.container.setAttribute("aria-busy", "false");
 
@@ -332,9 +437,11 @@ scheduleIdleTask(() => {
         return;
       }
 
-      this.loaderLabel.textContent = failedModelCount
-        ? "Orbita pronta con grafica semplificata"
-        : "Orbita pronta";
+      this.loaderLabel.textContent =
+        readyLabel ??
+        (failedModelCount
+          ? "Orbita pronta con grafica semplificata"
+          : "Orbita pronta");
     }
 
     applyModelEnvironment(factory) {
@@ -439,13 +546,15 @@ scheduleIdleTask(() => {
         const material = new MeshStandardMaterial({
           color: definition.color,
           emissive: definition.color,
-          emissiveIntensity: 0.1,
+          emissiveIntensity: GEM_BLOOM_STYLE.fallbackRestEmission,
           flatShading: true,
           metalness: 0.02,
           roughness: 0.28,
         });
-        material.userData.restEmissiveIntensity = 0.1;
-        material.userData.activeEmissiveIntensity = 0.72;
+        material.userData.restEmissiveIntensity =
+          GEM_BLOOM_STYLE.fallbackRestEmission;
+        material.userData.activeEmissiveIntensity =
+          GEM_BLOOM_STYLE.fallbackActiveEmission;
 
         const visual = new Mesh(geometry, material);
         const mesh = new Group();
@@ -464,26 +573,32 @@ scheduleIdleTask(() => {
         hitArea.userData.gemIndex = index;
         mesh.add(hitArea);
 
-        const light = new PointLight(definition.color, 1.35, 3.8);
-        const hintGlow = new Sprite(
+        const light = new PointLight(
+          definition.color,
+          GEM_BLOOM_STYLE.restLightIntensity,
+          3.8,
+        );
+        const bloomGlow = new Sprite(
           new SpriteMaterial({
-            map: this.interactionGlowTexture,
+            map: this.gemBloomTexture,
             color: definition.color,
             blending: AdditiveBlending,
             depthWrite: false,
-            opacity: 0,
+            opacity: GEM_BLOOM_STYLE.restOpacity,
             transparent: true,
           }),
         );
 
-        hintGlow.scale.setScalar(definition.size * 4);
-        mesh.add(light, hintGlow);
+        bloomGlow.scale.setScalar(
+          definition.size * GEM_BLOOM_STYLE.restScale,
+        );
+        mesh.add(light, bloomGlow);
         this.world.add(mesh);
         this.modules.push({
           index,
           mesh,
           hitArea,
-          hintGlow,
+          bloomGlow,
           light,
           visual,
           visualMaterials: [material],
@@ -534,9 +649,11 @@ scheduleIdleTask(() => {
       styleGemMaterials({
         addLight: false,
         color: module.definition.color,
+        emissionScale: GEM_BLOOM_STYLE.emissionScale,
         materials,
         visual,
       });
+      preserveGemEmission(materials);
       module.mesh.remove(fallback);
       fallback.geometry.dispose();
       fallback.material.dispose();
@@ -580,7 +697,13 @@ scheduleIdleTask(() => {
     }
 
     setProgress(progress) {
-      this.progress = clamp(progress);
+      const nextProgress = clamp(progress);
+
+      if (nextProgress !== this.progress) {
+        this.markPriorityRender();
+      }
+
+      this.progress = nextProgress;
       const shouldBeInteractive = this.progress >= INTERACTION_START;
 
       if (shouldBeInteractive === this.isInteractive) {
@@ -615,11 +738,22 @@ scheduleIdleTask(() => {
     };
 
     setIntroProgress(progress) {
-      this.introProgress = clamp(progress);
+      const nextProgress = clamp(progress);
+
+      if (nextProgress !== this.introProgress) {
+        this.markPriorityRender();
+      }
+
+      this.introProgress = nextProgress;
       if (this.introProgress > 0.005) {
         this.loadModelsOnce();
       }
       this.requestRender();
+    }
+
+    markPriorityRender() {
+      this.priorityRenderUntil =
+        performance.now() + PRIORITY_RENDER_DURATION_MS;
     }
 
     setIntroVisible(isVisible) {
@@ -733,8 +867,8 @@ scheduleIdleTask(() => {
     resetInteractionHint() {
       this.activeHintIndex = null;
       this.nextHintAt = Number.POSITIVE_INFINITY;
-      this.modules.forEach(({ hintGlow }) => {
-        hintGlow.material.opacity = 0;
+      this.modules.forEach(({ bloomGlow }) => {
+        bloomGlow.material.opacity = GEM_BLOOM_STYLE.restOpacity;
       });
     }
 
@@ -879,9 +1013,18 @@ scheduleIdleTask(() => {
           );
         }
 
-        module.hintGlow.material.opacity = lerp(0.2, 0.82, hintStrength);
-        module.hintGlow.scale.setScalar(
-          definition.size * lerp(5, 7.2, hintStrength),
+        module.bloomGlow.material.opacity = lerp(
+          GEM_BLOOM_STYLE.restOpacity,
+          GEM_BLOOM_STYLE.activeOpacity,
+          hintStrength,
+        );
+        module.bloomGlow.scale.setScalar(
+          definition.size *
+            lerp(
+              GEM_BLOOM_STYLE.restScale,
+              GEM_BLOOM_STYLE.activeScale,
+              hintStrength,
+            ),
         );
 
         if (!module.isDragging && !module.isStopped) {
@@ -933,7 +1076,11 @@ scheduleIdleTask(() => {
         });
         module.light.intensity = lerp(
           module.light.intensity,
-          lerp(1.35, 3.1, feedbackStrength),
+          lerp(
+            GEM_BLOOM_STYLE.restLightIntensity,
+            GEM_BLOOM_STYLE.activeLightIntensity,
+            feedbackStrength,
+          ),
           feedbackProgress,
         );
       });
@@ -946,7 +1093,13 @@ scheduleIdleTask(() => {
         return;
       }
 
-      if (!this.renderBudget.shouldRender(frameTime)) {
+      const isDraggingGem = this.modules.some(
+        ({ isDragging }) => isDragging,
+      );
+      const useActiveRate =
+        isDraggingGem || frameTime < this.priorityRenderUntil;
+
+      if (!this.renderBudget.shouldRender(frameTime, useActiveRate)) {
         this.frameId = requestAnimationFrame(this.render);
         return;
       }
@@ -1162,10 +1315,22 @@ scheduleIdleTask(() => {
   let orbitExperience;
 
   try {
-    orbitExperience = new OrbitExperience(canvasElement);
+    orbitExperience = new OrbitExperience(canvasElement, {
+      useDetailedModels: !useIOSWebGLFallback,
+    });
   } catch (error) {
     console.error("Impossibile inizializzare la scena 3D.", error);
     canvasElement.classList.add("is-fallback");
+  }
+
+  if (orbitExperience) {
+    const startupDependency = useStaticHeroPhoneVisuals
+      ? heroGalleriesReady
+      : Promise.resolve();
+
+    orbitModelsReady = startupDependency.then(() =>
+      orbitExperience.warmUp(),
+    );
   }
 
   if (showcaseElement) {
@@ -1183,26 +1348,47 @@ scheduleIdleTask(() => {
   new ScrollStory(storyElement, orbitExperience);
 
   if (moduleCardElements.length > 0) {
-    scheduleIdleTask(() => {
+    const initializeModuleGallery = () => {
       try {
         new ModuleGemGallery(moduleCardElements);
       } catch (error) {
-        console.error("Impossibile inizializzare le gemme dei moduli.", error);
+        console.error(
+          "Impossibile inizializzare le gemme dei moduli.",
+          error,
+        );
       }
-    });
+    };
+
+    if (useIOSWebGLFallback) {
+      moduleCardElements.forEach((element) => {
+        element.classList.add("uses-static-gem");
+      });
+    } else {
+      scheduleIdleTask(initializeModuleGallery);
+    }
   }
 
   if (featureOrbitElement) {
-    scheduleIdleTask(() => {
-      try {
-        new FeatureOrbitPreview(featureOrbitElement);
-      } catch (error) {
-        console.error(
+    if (useIOSWebGLFallback) {
+      featureOrbitElement.classList.add("is-fallback");
+    } else {
+      scheduleIdleTask(() => {
+        try {
+          new FeatureOrbitPreview(featureOrbitElement);
+        } catch (error) {
+          console.error(
           "Impossibile inizializzare l'orbita della funzionalità.",
           error,
         );
-        featureOrbitElement.classList.add("is-fallback");
-      }
-    });
+          featureOrbitElement.classList.add("is-fallback");
+        }
+      });
+    }
   }
 })();
+
+void pageLoader.hideWhenReady([
+  iPhoneShellsReady,
+  heroGalleriesReady,
+  orbitModelsReady,
+]);

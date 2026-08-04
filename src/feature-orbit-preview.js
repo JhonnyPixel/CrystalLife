@@ -88,6 +88,7 @@ export class FeatureOrbitPreview {
     this.isVisible = false;
     this.isAnimationEnabled = true;
     this.frameId = null;
+    this.hasStartedLoading = false;
     this.renderBudget = new RenderBudget({
       desktopPixelRatio: 3,
       mobileFps: 60,
@@ -105,8 +106,16 @@ export class FeatureOrbitPreview {
     this.observeVisibility();
     this.resize();
     this.element.classList.add("is-renderable");
-    void this.loadModels();
     this.requestRender();
+  }
+
+  loadModelsOnce() {
+    if (this.hasStartedLoading) {
+      return;
+    }
+
+    this.hasStartedLoading = true;
+    void this.loadModels();
   }
 
   createScene() {
@@ -306,6 +315,7 @@ export class FeatureOrbitPreview {
         this.renderBudget.reset();
 
         if (isVisible) {
+          this.loadModelsOnce();
           this.requestRender();
         } else if (this.frameId !== null) {
           cancelAnimationFrame(this.frameId);

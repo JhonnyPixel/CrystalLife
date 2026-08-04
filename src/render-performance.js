@@ -2,6 +2,16 @@ export const MOBILE_PERFORMANCE_QUERY =
   "(max-width: 700px), (hover: none) and (pointer: coarse)";
 const FRAME_TIME_TOLERANCE_MS = 0.75;
 
+export const isIOSWebKitDevice = () => {
+  const userAgent = navigator.userAgent ?? "";
+  const platform = navigator.platform ?? "";
+
+  return (
+    /iPad|iPhone|iPod/i.test(userAgent) ||
+    (platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+};
+
 export const initializeMobilePerformanceMode = (
   root = document.documentElement,
 ) => {
@@ -57,10 +67,12 @@ export const observeRenderVisibility = (
 export class RenderBudget {
   constructor({
     desktopPixelRatio,
-    mobileFps = 30,
+    mobileActiveFps = 60,
+    mobileFps = 60,
     mobilePixelRatio = 1,
   }) {
     this.desktopPixelRatio = desktopPixelRatio;
+    this.mobileActiveFrameInterval = 1000 / mobileActiveFps;
     this.mobileFrameInterval = 1000 / mobileFps;
     this.mobilePixelRatio = mobilePixelRatio;
     this.mobileViewport = window.matchMedia(MOBILE_PERFORMANCE_QUERY);
@@ -79,7 +91,7 @@ export class RenderBudget {
     return Math.min((window.devicePixelRatio || 1) * scale, maximumPixelRatio);
   }
 
-  shouldRender(frameTime) {
+  shouldRender(frameTime, useActiveRate = false) {
     if (!this.isMobile) {
       return true;
     }
@@ -89,14 +101,19 @@ export class RenderBudget {
       return true;
     }
 
+    const frameInterval = useActiveRate
+      ? this.mobileActiveFrameInterval
+      : this.mobileFrameInterval;
     const elapsed = frameTime - this.lastRenderedAt;
 
-    if (elapsed + FRAME_TIME_TOLERANCE_MS < this.mobileFrameInterval) {
+    if (elapsed + FRAME_TIME_TOLERANCE_MS < frameInterval) {
       return false;
     }
 
-    this.lastRenderedAt =
-      frameTime - (elapsed % this.mobileFrameInterval);
+    const cadenceOvershoot =
+      elapsed >= frameInterval ? elapsed % frameInterval : 0;
+
+    this.lastRenderedAt = frameTime - cadenceOvershoot;
     return true;
   }
 

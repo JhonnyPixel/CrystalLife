@@ -104,6 +104,9 @@ export class HeroGemGallery {
     this.frameId = null;
     this.isLoaded = false;
     this.hasStaticSnapshot = false;
+    this.readyPromise = new Promise((resolve) => {
+      this.resolveReady = resolve;
+    });
     this.renderBudget = new RenderBudget({
       desktopPixelRatio: this.isModuleGallery ? 1 : 1.5,
       mobileFps: 60,
@@ -132,8 +135,10 @@ export class HeroGemGallery {
     this.camera.position.set(0, 0, 5.2);
     this.renderer = new WebGLRenderer({
       alpha: true,
-      antialias: true,
-      powerPreference: "high-performance",
+      antialias: !this.renderBudget.isMobile,
+      powerPreference: this.renderBudget.isMobile
+        ? "low-power"
+        : "high-performance",
       preserveDrawingBuffer: this.isStatic,
     });
     this.canvasLayer.append(this.renderer.domElement);
@@ -149,9 +154,25 @@ export class HeroGemGallery {
   }
 
   async load() {
-    const results = await Promise.allSettled(
-      this.previews.map((preview) => preview.load()),
-    );
+    const results = [];
+
+    if (this.renderBudget.isMobile) {
+      for (const preview of this.previews) {
+        try {
+          results.push({ status: "fulfilled", value: await preview.load() });
+        } catch (reason) {
+          results.push({ status: "rejected", reason });
+        }
+
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
+    } else {
+      results.push(
+        ...(await Promise.allSettled(
+          this.previews.map((preview) => preview.load()),
+        )),
+      );
+    }
 
     results.forEach((result, index) => {
       if (result.status === "fulfilled") {
@@ -163,7 +184,17 @@ export class HeroGemGallery {
     });
     this.isLoaded = true;
     this.canvasLayer.classList.add("is-ready");
-    this.requestRender();
+
+    if (this.isStatic) {
+      this.renderStaticSnapshot();
+    } else {
+      this.resolveReady();
+      this.requestRender();
+    }
+  }
+
+  whenReady() {
+    return this.readyPromise;
   }
 
   observeSize() {
@@ -195,6 +226,10 @@ export class HeroGemGallery {
   }
 
   resize = () => {
+    if (!this.renderer) {
+      return;
+    }
+
     this.renderer.setPixelRatio(this.renderBudget.getPixelRatio());
     this.renderer.setSize(
       Math.max(this.root.clientWidth, 1),
@@ -247,8 +282,26 @@ export class HeroGemGallery {
     );
   }
 
+  renderStaticSnapshot() {
+    if (!this.renderer) {
+      return;
+    }
+
+    this.renderer.setScissorTest(false);
+    this.renderer.clear(true, true, true);
+    this.renderer.setScissorTest(true);
+    this.previews.forEach((preview) => this.renderPreview(preview));
+    this.captureStaticFrame();
+  }
+
   replaceCanvasWithSnapshot(canvas, blob) {
     if (!blob) {
+      this.previews.forEach((preview) => {
+        preview.element.classList.remove("is-ready");
+      });
+      this.canvasLayer.classList.remove("is-ready");
+      canvas.remove();
+      this.releaseStaticRenderer();
       return;
     }
 
@@ -257,13 +310,32 @@ export class HeroGemGallery {
 
     image.className = "hero-gem-gallery__snapshot";
     image.alt = "";
+    image.addEventListener(
+      "load",
+      () => URL.revokeObjectURL(snapshotUrl),
+      { once: true },
+    );
     image.src = snapshotUrl;
     canvas.replaceWith(image);
+
+    this.releaseStaticRenderer();
+  }
+
+  releaseStaticRenderer() {
+    this.resizeObserver?.disconnect();
+    this.visibilityObserver?.disconnect();
 
     if (this.frameId !== null) {
       cancelAnimationFrame(this.frameId);
       this.frameId = null;
     }
+
+    this.renderer.dispose();
+    this.renderer.forceContextLoss();
+    this.renderer = null;
+    this.previews = [];
+    this.elements = [];
+    this.resolveReady();
   }
 
   render = (frameTime) => {
@@ -280,7 +352,7 @@ export class HeroGemGallery {
 
     this.lastFrameTime = frameTime;
 
-    if (!this.isStatic && !this.renderBudget.shouldRender(deltaSeconds)) {
+    if (!this.isStatic && !this.renderBudget.shouldRender(frameTime)) {
       this.frameId = requestAnimationFrame(this.render);
       return;
     }

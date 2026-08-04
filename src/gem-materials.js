@@ -114,8 +114,9 @@ const createGlassMaterial = (color) => {
   return material;
 };
 
-const styleInnerMaterial = (material, color) => {
-  const emissionStrength = getEmissionStrengthForColor(color);
+const styleInnerMaterial = (material, color, emissionScale) => {
+  const emissionStrength =
+    getEmissionStrengthForColor(color) * emissionScale;
 
   if (material.color) {
     material.color.copy(color);
@@ -156,12 +157,12 @@ const getCoreColor = (innerMaterials, fallbackColor) => {
   return new Color(0x8b5cf6);
 };
 
-const addCoreLight = (visual, color) => {
+const addCoreLight = (visual, color, emissionScale) => {
   const boundsSize = new Box3().setFromObject(visual).getSize(new Vector3());
   const diameter = Math.max(boundsSize.x, boundsSize.y, boundsSize.z);
   const light = new PointLight(
     color,
-    INNER_LIGHT_INTENSITY,
+    INNER_LIGHT_INTENSITY * emissionScale,
     diameter * INNER_LIGHT_DISTANCE_RATIO,
     INNER_LIGHT_DECAY,
   );
@@ -190,6 +191,7 @@ const orderGemMeshes = (visual, innerMaterials) => {
 export const styleGemMaterials = ({
   addLight = true,
   color,
+  emissionScale = 1,
   materials,
   visual,
 }) => {
@@ -204,7 +206,7 @@ export const styleGemMaterials = ({
     if (Array.isArray(object.material)) {
       object.material = object.material.map((mat) => {
         if (innerMaterials.has(mat)) {
-          styleInnerMaterial(mat, coreColor);
+          styleInnerMaterial(mat, coreColor, emissionScale);
           return mat;
         }
         const glassMat = createGlassMaterial(coreColor);
@@ -219,7 +221,7 @@ export const styleGemMaterials = ({
       const mat = object.material;
 
       if (innerMaterials.has(mat)) {
-        styleInnerMaterial(mat, coreColor);
+        styleInnerMaterial(mat, coreColor, emissionScale);
       } else {
         const glassMat = createGlassMaterial(coreColor);
         const matIdx = materials.indexOf(mat);
@@ -234,6 +236,6 @@ export const styleGemMaterials = ({
 
   orderGemMeshes(visual, innerMaterials);
   if (addLight) {
-    addCoreLight(visual, coreColor);
+    addCoreLight(visual, coreColor, emissionScale);
   }
 };

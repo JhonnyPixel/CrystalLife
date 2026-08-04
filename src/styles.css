@@ -48,6 +48,129 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+html.is-page-loading,
+html.is-page-loading body {
+  overflow: hidden;
+}
+
+.page-loader {
+  position: fixed;
+  z-index: 10000;
+  inset: 0;
+  display: grid;
+  overflow: hidden;
+  place-items: center;
+  background:
+    radial-gradient(
+      circle at 50% 46%,
+      rgba(89, 46, 180, 0.2),
+      transparent 36%
+    ),
+    #000000;
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 500ms ease,
+    visibility 500ms step-end;
+}
+
+html.is-page-ready .page-loader {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.page-loader__content {
+  display: grid;
+  width: min(360px, calc(100vw - 2.5rem));
+  justify-items: center;
+}
+
+.page-loader__visual {
+  position: relative;
+  display: grid;
+  width: 104px;
+  margin-bottom: 2rem;
+  aspect-ratio: 1;
+  place-items: center;
+}
+
+.page-loader__spinner {
+  position: absolute;
+  inset: 0;
+  border: 3px solid rgba(208, 188, 255, 0.12);
+  border-top-color: rgba(255, 255, 255, 0.95);
+  border-right-color: rgba(139, 92, 246, 0.9);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 18px rgba(139, 92, 246, 0.1),
+    0 0 30px rgba(139, 92, 246, 0.24);
+  animation: page-loader-spin 1.05s linear infinite;
+}
+
+.page-loader__brand {
+  font-size: 1.55rem;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.page-loader__brand-crystal {
+  font-weight: 800;
+}
+
+.page-loader__brand-life {
+  margin-left: 0.04em;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.page-loader__label {
+  margin-top: 0.85rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.page-loader__track {
+  position: relative;
+  width: 100%;
+  height: 4px;
+  margin-top: 1.8rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 14px rgba(139, 92, 246, 0.14);
+}
+
+.page-loader__track span {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--primary-light),
+    transparent
+  );
+  animation: page-loader-progress 1.15s ease-in-out infinite;
+}
+
+@keyframes page-loader-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@keyframes page-loader-progress {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(100%);
+  }
+}
+
 .space-background {
   position: fixed;
   z-index: 0;
@@ -381,6 +504,7 @@ h3 {
 
 .app-phone {
   --iphone-screen-perspective: clamp(1063px, 91.7vw, 1373px);
+  --iphone-screen-circle-correction: 1.084;
   --iphone-screen-scale-x: 0.811;
   --iphone-screen-scale-y: 0.879;
   position: absolute;
@@ -1155,19 +1279,37 @@ h3 {
 
 .hero-orbit-preview.is-renderable,
 .hero-orbit-preview.is-ready,
+.hero-orbit-preview.is-static,
 .hero-orbit-preview.is-fallback {
   opacity: var(--phone-orbit-opacity);
 }
 
+.hero-orbit-preview__static {
+  display: none;
+  width: 100%;
+  height: 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
 .hero-orbit-preview.is-fallback {
+  background: none;
+}
+
+.hero-orbit-preview.is-fallback::before {
+  position: absolute;
+  inset: 0;
+  content: "";
   background:
     radial-gradient(circle, rgba(139, 92, 246, 0.7) 0 13%, transparent 15%),
     repeating-radial-gradient(
-      ellipse,
+      circle,
       transparent 0 11%,
       rgba(208, 188, 255, 0.14) 11.5% 12%,
       transparent 12.5% 20%
     );
+  transform: scaleX(var(--iphone-screen-circle-correction));
 }
 
 .hero-orbit-preview canvas {
@@ -1177,7 +1319,7 @@ h3 {
 }
 
 .app-phone--center .hero-orbit-preview canvas {
-  transform: scaleY(1.08);
+  transform: scaleX(var(--iphone-screen-circle-correction));
   transform-origin: 50% 50%;
 }
 
@@ -1633,6 +1775,15 @@ h3 {
     0 0 0 86px rgba(255, 255, 255, 0.018);
 }
 
+.uses-ios-webgl-fallback .orbit-canvas.is-fallback::before {
+  background:
+    radial-gradient(circle at 50% 4%, #ec4899 0 1.5%, transparent 2.2%),
+    radial-gradient(circle at 88% 34%, #3b82f6 0 1.5%, transparent 2.2%),
+    radial-gradient(circle at 73% 86%, #8b5cf6 0 1.7%, transparent 2.4%),
+    radial-gradient(circle at 21% 78%, #b6f34a 0 1.6%, transparent 2.3%),
+    radial-gradient(circle at 9% 37%, #f97316 0 1.7%, transparent 2.4%);
+}
+
 .orbit-canvas.is-fallback::after,
 .orbit-canvas.is-renderable:not(.is-ready)::after {
   width: 124px;
@@ -2060,16 +2211,22 @@ h3 {
   z-index: 1;
   inset: 0;
   overflow: hidden;
+  mask-position: 0 0;
+  mask-repeat: no-repeat;
+  mask-size: 100% 100%;
   opacity: 0;
   pointer-events: none;
   transition: opacity 360ms ease;
+  -webkit-mask-position: 0 0;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
 }
 
 .module-grid .module-gem-gallery.is-ready {
   opacity: 0.92;
 }
 
-.module-gem-gallery > .v3d-canvas {
+.module-gem-gallery > canvas {
   z-index: 0;
   display: block;
   width: 100%;
@@ -2131,6 +2288,50 @@ h3 {
   box-shadow:
     inset 8px -8px 12px rgba(0, 0, 0, 0.28),
     0 0 28px rgba(59, 130, 246, 0.22);
+}
+
+.module-card[data-gem-model="mind"] { --static-gem-color: #8b5cf6; }
+.module-card[data-gem-model="body"] { --static-gem-color: #b6f34a; }
+.module-card[data-gem-model="discipline"] { --static-gem-color: #f97316; }
+.module-card[data-gem-model="relationships"] { --static-gem-color: #ec4899; }
+.module-card[data-gem-model="growth"] { --static-gem-color: #3b82f6; }
+
+.uses-ios-webgl-fallback .module-card.uses-static-gem::before {
+  position: absolute;
+  z-index: 1;
+  top: 17%;
+  left: 62%;
+  width: clamp(96px, 12vw, 136px);
+  aspect-ratio: 2 / 3;
+  content: "";
+  background-image: url("/gem-images/crystal-sprite.webp");
+  background-position: 0 0;
+  background-repeat: no-repeat;
+  background-size: 300% 200%;
+  filter:
+    drop-shadow(0 0 22px color-mix(in srgb, var(--static-gem-color), transparent 22%))
+    drop-shadow(0 0 42px color-mix(in srgb, var(--static-gem-color), transparent 60%));
+  transform: translateX(-50%) rotate(8deg);
+}
+
+.uses-ios-webgl-fallback .module-card.uses-static-gem:nth-child(even)::before {
+  transform: translateX(-50%) rotate(-9deg);
+}
+
+.uses-ios-webgl-fallback .module-card[data-gem-model="body"]::before {
+  background-position: 50% 0;
+}
+
+.uses-ios-webgl-fallback .module-card[data-gem-model="discipline"]::before {
+  background-position: 100% 0;
+}
+
+.uses-ios-webgl-fallback .module-card[data-gem-model="relationships"]::before {
+  background-position: 0 100%;
+}
+
+.uses-ios-webgl-fallback .module-card[data-gem-model="growth"]::before {
+  background-position: 50% 100%;
 }
 
 .module-card h3 {
@@ -3372,6 +3573,65 @@ h3 {
 }
 
 @media (max-width: 700px), (hover: none) and (pointer: coarse) {
+  .is-mobile-performance .orbit-canvas {
+    clip-path: none;
+    will-change: opacity;
+  }
+
+  .is-mobile-performance .orbit-canvas canvas {
+    transform: none;
+    will-change: auto;
+  }
+
+  .is-mobile-performance .phone-module-gem:not(.is-ready),
+  .is-mobile-performance .hero-detail-gem-3d:not(.is-ready) {
+    background-color: transparent;
+    background-image: url("/gem-images/crystal-sprite.webp");
+    background-repeat: no-repeat;
+    background-size: 300% 200%;
+    clip-path: none;
+  }
+
+  .is-mobile-performance .phone-module-gem:not(.is-ready)::before,
+  .is-mobile-performance .phone-module-gem:not(.is-ready)::after,
+  .is-mobile-performance .hero-detail-gem-3d:not(.is-ready)::before {
+    display: none;
+  }
+
+  .is-mobile-performance [data-hero-gem-model="mind"] {
+    background-position: 0 0;
+  }
+
+  .is-mobile-performance [data-hero-gem-model="body"] {
+    background-position: 50% 0;
+  }
+
+  .is-mobile-performance [data-hero-gem-model="discipline"] {
+    background-position: 100% 0;
+  }
+
+  .is-mobile-performance [data-hero-gem-model="relationships"] {
+    background-position: 0 100%;
+  }
+
+  .is-mobile-performance [data-hero-gem-model="growth"] {
+    background-position: 50% 100%;
+  }
+
+  .is-mobile-performance .hero-detail-gem-3d {
+    filter:
+      drop-shadow(0 0 12px rgba(182, 243, 74, 0.62))
+      drop-shadow(0 0 28px rgba(92, 184, 48, 0.28));
+  }
+
+  .is-mobile-performance .hero-orbit-preview__static {
+    display: block;
+    background-image: url("/gem-images/mobile-orbit.webp");
+    background-size: cover;
+    transform: scaleX(var(--iphone-screen-circle-correction));
+    transform-origin: 50% 50%;
+  }
+
   .is-mobile-performance .showcase-transition-mask {
     backdrop-filter: none;
   }
@@ -3382,22 +3642,12 @@ h3 {
 
   .is-mobile-performance .app-phone--left,
   .is-mobile-performance .app-phone--right {
-    filter: brightness(0.92) contrast(1.06) saturate(1.12);
+    filter: none;
   }
 
   .is-mobile-performance .phone-nav {
     background: rgba(18, 18, 20, 0.96);
     backdrop-filter: none;
-  }
-
-  .is-mobile-performance .orbit-canvas {
-    clip-path: none;
-    will-change: opacity;
-  }
-
-  .is-mobile-performance .orbit-canvas canvas {
-    transform: none;
-    will-change: auto;
   }
 
   .is-mobile-performance .liquid-glass-text::after {

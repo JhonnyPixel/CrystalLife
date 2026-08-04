@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   existsSync,
   readFileSync,
@@ -22,6 +23,19 @@ const GEM_DIRECTORIES = Object.freeze({
 
 const getPublicGemPath = (directoryName, fileName) =>
   `gems/${encodeURIComponent(directoryName)}/${encodeURIComponent(fileName)}`;
+
+const getAssetFingerprint = (filePaths) => {
+  const hash = createHash("sha256");
+
+  filePaths.filter(Boolean).forEach((filePath) => {
+    const content = readFileSync(filePath);
+
+    hash.update(String(content.byteLength));
+    hash.update(content);
+  });
+
+  return hash.digest("hex");
+};
 
 const findReferencedBinary = (modelPath, availableFiles) => {
   if (extname(modelPath).toLowerCase() !== ".gltf") {
@@ -51,7 +65,7 @@ const findGemAsset = (directoryName) => {
   const directoryPath = resolve(gemsDirectory, directoryName);
 
   if (!existsSync(directoryPath)) {
-    return { binaryPath: null, modelPath: null };
+    return { binaryPath: null, fingerprint: null, modelPath: null };
   }
 
   const availableFiles = readdirSync(directoryPath).sort((left, right) =>
@@ -66,6 +80,9 @@ const findGemAsset = (directoryName) => {
   if (glbName) {
     return {
       binaryPath: null,
+      fingerprint: getAssetFingerprint([
+        resolve(directoryPath, glbName),
+      ]),
       modelPath: getPublicGemPath(directoryName, glbName),
     };
   }
@@ -75,7 +92,7 @@ const findGemAsset = (directoryName) => {
   );
 
   if (!modelName) {
-    return { binaryPath: null, modelPath: null };
+    return { binaryPath: null, fingerprint: null, modelPath: null };
   }
 
   const modelPath = resolve(directoryPath, modelName);
@@ -99,17 +116,36 @@ const findGemAsset = (directoryName) => {
     binaryPath: binaryName
       ? getPublicGemPath(directoryName, binaryName)
       : null,
+    fingerprint: getAssetFingerprint([
+      modelPath,
+      binaryName ? resolve(directoryPath, binaryName) : null,
+    ]),
     modelPath: getPublicGemPath(directoryName, modelName),
   };
 };
 
-const findGemAssets = () =>
-  Object.fromEntries(
-    Object.entries(GEM_DIRECTORIES).map(([key, directoryName]) => [
-      key,
-      findGemAsset(directoryName),
-    ]),
+const findGemAssets = () => {
+  const canonicalAssets = new Map();
+
+  return Object.fromEntries(
+    Object.entries(GEM_DIRECTORIES).map(([key, directoryName]) => {
+      const { fingerprint, ...asset } = findGemAsset(directoryName);
+      const canonicalAsset = fingerprint
+        ? canonicalAssets.get(fingerprint)
+        : null;
+
+      if (canonicalAsset) {
+        return [key, canonicalAsset];
+      }
+
+      if (fingerprint) {
+        canonicalAssets.set(fingerprint, asset);
+      }
+
+      return [key, asset];
+    }),
   );
+};
 
 const gemAssetsPlugin = () => ({
   name: "gem-assets",

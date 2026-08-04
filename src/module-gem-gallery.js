@@ -30,6 +30,8 @@ const AUTO_ROTATION_SPEED = 0.16;
 const CORE_BLOOM_STRENGTH = 0.7;
 const CORE_BLOOM_RADIUS = 0.2;
 const CORE_BLOOM_THRESHOLD = 0.1;
+const GROWTH_EMISSION_SCALE = 1.55;
+const CARD_CLIP_INSET = 1;
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
 class ModuleGemCard {
@@ -126,8 +128,12 @@ class ModuleGemCard {
     const { materials, visual } = factory.create({ size: MODEL_SIZE });
     const orb = this.element.querySelector(".module-card__orb");
     const color = orb ? getComputedStyle(orb).backgroundColor : null;
+    const emissionScale =
+      this.element.dataset.gemModel === "growth"
+        ? GROWTH_EMISSION_SCALE
+        : 1;
 
-    styleGemMaterials({ color, materials, visual });
+    styleGemMaterials({ color, emissionScale, materials, visual });
     visual.rotation.set(0.2, -0.45, -0.08);
     this.visual = visual;
     this.scene.add(visual);
@@ -277,6 +283,10 @@ class ModuleGemCard {
     this.angularVelocity.y *= damping;
   }
 
+  get isInteracting() {
+    return this.pointerId !== null;
+  }
+
   positionVisual(aspect) {
     if (!this.visual) {
       return;
@@ -321,6 +331,7 @@ export class ModuleGemGallery {
     }
 
     this.isVisible = false;
+    this.hasStartedLoading = false;
     this.lastFrameTime = performance.now();
     this.renderBudget = new RenderBudget({
       desktopPixelRatio: 1.5,
@@ -339,13 +350,13 @@ export class ModuleGemGallery {
           this.prefersReducedMotion,
           this.renderer,
           this.camera,
-          true,
+          !this.renderBudget.isMobile,
         ),
     );
     this.observeSize();
     this.observeVisibility();
+    this.observeLoading();
     this.resize();
-    void this.load();
     this.frameId = requestAnimationFrame(this.render);
   }
 
@@ -361,8 +372,10 @@ export class ModuleGemGallery {
 
     this.renderer = new WebGLRenderer({
       alpha: true,
-      antialias: true,
-      powerPreference: "high-performance",
+      antialias: !this.renderBudget.isMobile,
+      powerPreference: this.renderBudget.isMobile
+        ? "low-power"
+        : "high-performance",
     });
     this.canvasLayer.append(this.renderer.domElement);
 
@@ -377,9 +390,28 @@ export class ModuleGemGallery {
   }
 
   async load() {
-    const results = await Promise.allSettled(
-      this.cards.map((card) => card.load()),
-    );
+    if (this.hasStartedLoading) {
+      return;
+    }
+
+    this.hasStartedLoading = true;
+    const results = [];
+
+    if (this.renderBudget.isMobile) {
+      for (const card of this.cards) {
+        try {
+          results.push({ status: "fulfilled", value: await card.load() });
+        } catch (reason) {
+          results.push({ status: "rejected", reason });
+        }
+
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
+    } else {
+      results.push(
+        ...(await Promise.allSettled(this.cards.map((card) => card.load()))),
+      );
+    }
 
     results.forEach((result, index) => {
       if (result.status === "rejected") {
@@ -392,6 +424,26 @@ export class ModuleGemGallery {
     });
 
     this.canvasLayer.classList.add("is-ready");
+  }
+
+  observeLoading() {
+    if (!("IntersectionObserver" in window)) {
+      void this.load();
+      return;
+    }
+
+    this.loadObserver = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) {
+          return;
+        }
+
+        this.loadObserver.disconnect();
+        void this.load();
+      },
+      { rootMargin: "600px 0px" },
+    );
+    this.loadObserver.observe(this.grid);
   }
 
   observeSize() {
@@ -429,7 +481,45 @@ export class ModuleGemGallery {
 
     this.renderer.setPixelRatio(this.renderBudget.getPixelRatio());
     this.renderer.setSize(width, height, false);
+    this.updateClipMask(width, height);
   };
+
+  updateClipMask(width, height) {
+    const gridBounds = this.grid.getBoundingClientRect();
+    const clipRects = this.cards.map(({ element }) => {
+      const bounds = element.getBoundingClientRect();
+      const radius =
+        parseFloat(getComputedStyle(element).borderTopLeftRadius) || 0;
+      const clippedWidth = Math.max(bounds.width - CARD_CLIP_INSET * 2, 0);
+      const clippedHeight = Math.max(
+        bounds.height - CARD_CLIP_INSET * 2,
+        0,
+      );
+      const x = bounds.left - gridBounds.left + CARD_CLIP_INSET;
+      const y = bounds.top - gridBounds.top + CARD_CLIP_INSET;
+      const clippedRadius = Math.max(radius - CARD_CLIP_INSET, 0);
+
+      return `<rect
+        x="${x}"
+        y="${y}"
+        width="${clippedWidth}"
+        height="${clippedHeight}"
+        rx="${clippedRadius}"
+        fill="white"
+      />`;
+    });
+    const maskSvg = `<svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="${width}"
+      height="${height}"
+      viewBox="0 0 ${width} ${height}"
+    >${clipRects.join("")}</svg>`;
+    const encodedMask = encodeURIComponent(maskSvg);
+    const maskImage = `url("data:image/svg+xml,${encodedMask}")`;
+
+    this.canvasLayer.style.maskImage = maskImage;
+    this.canvasLayer.style.webkitMaskImage = maskImage;
+  }
 
   renderCard(card, gridBounds) {
     if (!card.visual) {
@@ -437,6 +527,16 @@ export class ModuleGemGallery {
     }
 
     const cardBounds = card.element.getBoundingClientRect();
+
+    if (
+      cardBounds.bottom <= 0 ||
+      cardBounds.right <= 0 ||
+      cardBounds.top >= window.innerHeight ||
+      cardBounds.left >= window.innerWidth
+    ) {
+      return;
+    }
+
     const left = cardBounds.left - gridBounds.left;
     const bottom = gridBounds.bottom - cardBounds.bottom;
     const width = cardBounds.width;
@@ -457,7 +557,9 @@ export class ModuleGemGallery {
       return;
     }
 
-    if (!this.renderBudget.shouldRender(frameTime)) {
+    const isInteracting = this.cards.some((card) => card.isInteracting);
+
+    if (!this.renderBudget.shouldRender(frameTime, isInteracting)) {
       this.frameId = requestAnimationFrame(this.render);
       return;
     }

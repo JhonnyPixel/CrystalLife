@@ -1,3 +1,5 @@
+import { MOBILE_PERFORMANCE_QUERY } from "./render-performance.js";
+
 const clamp = (value, min = 0, max = 1) =>
   Math.min(max, Math.max(min, value));
 
@@ -25,6 +27,7 @@ export class HeroShowcase {
     this.onOrbitProgressChange = onOrbitProgressChange;
     this.isTicking = false;
     this.narrowViewport = window.matchMedia("(max-width: 860px)");
+    this.mobilePerformance = window.matchMedia(MOBILE_PERFORMANCE_QUERY);
     this.prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     );
@@ -123,8 +126,10 @@ export class HeroShowcase {
       this.useSimpleTransition ? 0 : 1.1,
       smoothstep(0.34, 0.72, progress) * maskExit,
     );
-    const { radius: originRadius, x: originX, y: originY } = this
-      .useSimpleTransition
+    const useAnimatedOrbitClip =
+      !this.useSimpleTransition && !this.mobilePerformance.matches;
+    const { radius: originRadius, x: originX, y: originY } =
+      !useAnimatedOrbitClip
       ? { radius: 145, x: 50, y: 50 }
       : this.getOrbitOrigin();
     const clipX = lerp(originX, 50, orbitRevealProgress);
