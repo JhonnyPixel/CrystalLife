@@ -34,7 +34,7 @@ const MAX_DELTA_SECONDS = 0.05;
 const MODULE_DEFINITIONS = [
   {
     binaryUrl: GEM_ASSETS.mind.binaryUrl,
-    color: 0x8b5cf6,
+    color: 0xef4444,
     distance: 1.22,
     modelUrl: GEM_MODEL_URLS.mind,
     size: 0.2,

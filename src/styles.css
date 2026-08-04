@@ -9,6 +9,7 @@
   --text: #ffffff;
   --text-muted: #a1a1aa;
   --primary: #8b5cf6;
+  --mind: #ef4444;
   --primary-light: #d0bcff;
   --lime: #b6f34a;
   --discipline: #f97316;
@@ -1111,7 +1112,7 @@ h3 {
   font-style: normal;
 }
 
-.phone-path-card--happiness { --card-color: #8b5cf6; }
+.phone-path-card--happiness { --card-color: var(--mind); }
 .phone-path-card--health { --card-color: #b6f34a; }
 .phone-path-card--purpose { --card-color: #3b82f6; }
 .phone-path-card--virtue { --card-color: #f97316; }
@@ -2245,6 +2246,13 @@ h3 {
   transform: rotate(18deg);
 }
 
+.module-card__orb--mind {
+  background: var(--mind);
+  box-shadow:
+    inset 8px -8px 12px rgba(0, 0, 0, 0.28),
+    0 0 28px rgba(239, 68, 68, 0.28);
+}
+
 .module-card__orb--lime {
   background: var(--lime);
   box-shadow:
@@ -2565,6 +2573,10 @@ h3 {
   border-radius: 44% 56% 50% 50%;
   background: var(--primary);
   transform: rotate(18deg);
+}
+
+.module-dot--mind {
+  background: var(--mind);
 }
 
 .module-dot--body {

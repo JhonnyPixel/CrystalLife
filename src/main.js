@@ -108,8 +108,8 @@ scheduleIdleTask(initializeHeroGemGalleries);
   const MOBILE_ORBIT_FADE = Object.freeze({
     entranceEnd: 0.6,
     entranceStart: 0.24,
-    exitEnd: 0.98,
-    exitStart: 0.7,
+    exitEnd: 1,
+    exitStart: 1,
   });
   const ORBIT_OPACITY = 0.075;
   const ORBIT_SCREEN_EDGE_RATIO = 0.94;
@@ -420,8 +420,8 @@ scheduleIdleTask(initializeHeroGemGalleries);
           name: "Mente",
           description:
             "Chiarezza, journaling e spazio mentale per scegliere con intenzione.",
-          cssColor: "#8b5cf6",
-          color: 0x8b5cf6,
+          cssColor: "#ef4444",
+          color: 0xef4444,
           distance: 3.2,
           binaryUrl: GEM_ASSETS.mind.binaryUrl,
           modelUrl: GEM_MODEL_URLS.mind,

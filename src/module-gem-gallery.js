@@ -27,10 +27,10 @@ const MODEL_SIZE = 1.05;
 const DRAG_SENSITIVITY = 0.011;
 const MAX_ANGULAR_VELOCITY = 4;
 const AUTO_ROTATION_SPEED = 0.16;
-const CORE_BLOOM_STRENGTH = 0.7;
-const CORE_BLOOM_RADIUS = 0.2;
-const CORE_BLOOM_THRESHOLD = 0.1;
-const GROWTH_EMISSION_SCALE = 1.55;
+const CORE_BLOOM_STRENGTH = 0.95;
+const CORE_BLOOM_RADIUS = 0.28;
+const CORE_BLOOM_THRESHOLD = 0.05;
+const MODULE_EMISSION_SCALE = 1.5;
 const CARD_CLIP_INSET = 1;
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
@@ -128,12 +128,12 @@ class ModuleGemCard {
     const { materials, visual } = factory.create({ size: MODEL_SIZE });
     const orb = this.element.querySelector(".module-card__orb");
     const color = orb ? getComputedStyle(orb).backgroundColor : null;
-    const emissionScale =
-      this.element.dataset.gemModel === "growth"
-        ? GROWTH_EMISSION_SCALE
-        : 1;
-
-    styleGemMaterials({ color, emissionScale, materials, visual });
+    styleGemMaterials({
+      color,
+      emissionScale: MODULE_EMISSION_SCALE,
+      materials,
+      visual,
+    });
     visual.rotation.set(0.2, -0.45, -0.08);
     this.visual = visual;
     this.scene.add(visual);
