@@ -3294,6 +3294,38 @@ h3 {
 }
 
 @media (max-width: 560px), (hover: none) and (pointer: coarse) {
+  .app-phone--left .hero-gem-gallery,
+  .app-phone--right .hero-gem-gallery {
+    display: none;
+  }
+
+  .app-phone--left .phone-module-gem,
+  .app-phone--right .hero-detail-gem-3d {
+    background-color: transparent;
+    background-image: url("/mobile-side-gem.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 250% auto;
+    clip-path: none;
+  }
+
+  .app-phone--left .phone-module-gem {
+    box-shadow: none;
+    filter: drop-shadow(0 0 7px rgba(88, 184, 255, 0.58));
+  }
+
+  .app-phone--right .hero-detail-gem-3d {
+    filter:
+      drop-shadow(0 0 12px rgba(104, 150, 255, 0.65))
+      drop-shadow(0 0 28px rgba(66, 86, 230, 0.3));
+  }
+
+  .app-phone--left .phone-module-gem::before,
+  .app-phone--left .phone-module-gem::after,
+  .app-phone--right .hero-detail-gem-3d::before {
+    display: none;
+  }
+
   .orbit-canvas.is-interactive .gem-touch-target {
     pointer-events: auto;
   }
@@ -3522,7 +3554,7 @@ h3 {
       var(--orbit-section-clip-bottom)
       0
     );
-    transition: opacity 180ms ease-out;
+    transition: none;
   }
 }
 

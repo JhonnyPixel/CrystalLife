@@ -80,7 +80,6 @@ export class GemInteractionController {
     }
 
     event.preventDefault();
-    this.sound.unlock();
     this.sound.play(gemIndex, "grab");
     this.container.setPointerCapture(event.pointerId);
     this.container.classList.add("is-dragging-gem");
@@ -293,7 +292,6 @@ export class GemInteractionController {
   }
 
   playRelease(gemIndex) {
-    this.sound.unlock();
     this.sound.play(gemIndex, "release");
     this.announce(
       `${this.modules[gemIndex].definition.name} di nuovo in orbita`,

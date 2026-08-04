@@ -83,6 +83,10 @@ const heroGalleryElements = [
   ),
 ];
 const initializeHeroGemGalleries = () => {
+  if (window.matchMedia(MOBILE_VIEWPORT_QUERY).matches) {
+    return;
+  }
+
   heroGalleryElements.forEach((element) => {
     try {
       new HeroGemGallery(element);
@@ -105,12 +109,6 @@ scheduleIdleTask(initializeHeroGemGalleries);
   const FINAL_CAMERA_HEIGHT = 14;
   const MOBILE_ORBIT_SCALE_BOOST = 1.1;
   const MOBILE_ORBIT_OPACITY = 0.16;
-  const MOBILE_ORBIT_FADE = Object.freeze({
-    entranceEnd: 0.6,
-    entranceStart: 0.24,
-    exitEnd: 1,
-    exitStart: 1,
-  });
   const ORBIT_OPACITY = 0.075;
   const ORBIT_SCREEN_EDGE_RATIO = 0.94;
   const GEM_HINT_DURATION_SECONDS = 1.35;
@@ -1190,29 +1188,11 @@ scheduleIdleTask(initializeHeroGemGalleries);
 
       if (this.mobileViewport.matches) {
         const isPresented = hasEnteredViewport && rect.bottom > 0;
-        const sectionProgress = clamp(
-          (window.innerHeight - rect.top) /
-            Math.max(rect.height, 1),
-        );
-        const entranceOpacity = smoothstep(
-          MOBILE_ORBIT_FADE.entranceStart,
-          MOBILE_ORBIT_FADE.entranceEnd,
-          sectionProgress,
-        );
-        const exitOpacity =
-          1 -
-          smoothstep(
-            MOBILE_ORBIT_FADE.exitStart,
-            MOBILE_ORBIT_FADE.exitEnd,
-            sectionProgress,
-          );
 
         return {
           isPresented,
           progress: isPresented ? 1 : 0,
-          storyVisibility: isPresented
-            ? entranceOpacity * exitOpacity
-            : 0,
+          storyVisibility: isPresented ? 1 : 0,
         };
       }
 

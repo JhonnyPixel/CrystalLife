@@ -1,5 +1,6 @@
 const GEM_FREQUENCIES = [261.63, 329.63, 392, 493.88, 587.33];
 const MASTER_VOLUME = 4.85;
+const USER_ACTIVATION_EVENTS = ["pointerdown", "touchstart", "keydown"];
 
 const SOUND_PROFILES = {
   grab: {
@@ -35,18 +36,70 @@ const SOUND_PROFILES = {
 export class GemSound {
   constructor() {
     this.context = null;
+    this.isPrimed = false;
     this.resumePromise = null;
+    USER_ACTIVATION_EVENTS.forEach((eventName) => {
+      window.addEventListener(eventName, this.handleUserActivation, {
+        capture: true,
+        passive: true,
+      });
+    });
   }
 
-  unlock() {
+  handleUserActivation = () => {
+    USER_ACTIVATION_EVENTS.forEach((eventName) => {
+      window.removeEventListener(eventName, this.handleUserActivation, true);
+    });
+    void this.unlock();
+  };
+
+  createContext() {
     const AudioContextClass =
       window.AudioContext ?? window.webkitAudioContext;
 
     if (!AudioContextClass) {
+      return null;
+    }
+
+    try {
+      return new AudioContextClass();
+    } catch {
+      return null;
+    }
+  }
+
+  primeContext() {
+    if (!this.context || this.isPrimed) {
+      return;
+    }
+
+    try {
+      const source = this.context.createBufferSource();
+
+      source.buffer = this.context.createBuffer(
+        1,
+        1,
+        this.context.sampleRate,
+      );
+      source.connect(this.context.destination);
+      source.start(0);
+      source.addEventListener("ended", () => source.disconnect(), {
+        once: true,
+      });
+      this.isPrimed = true;
+    } catch {
+      this.isPrimed = false;
+    }
+  }
+
+  unlock() {
+    this.context ??= this.createContext();
+
+    if (!this.context) {
       return Promise.resolve(false);
     }
 
-    this.context ??= new AudioContextClass();
+    this.primeContext();
 
     if (this.context.state === "running") {
       return Promise.resolve(true);
@@ -70,11 +123,11 @@ export class GemSound {
   play(gemIndex, action, intensity = 1) {
     const profile = SOUND_PROFILES[action];
 
-    if (!this.context || !profile) {
+    if (!profile) {
       return;
     }
 
-    if (this.context.state !== "running") {
+    if (!this.context || this.context.state !== "running") {
       void this.unlock().then((isReady) => {
         if (isReady) {
           this.playTone(gemIndex, profile, intensity);
