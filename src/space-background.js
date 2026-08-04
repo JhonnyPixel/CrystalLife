@@ -1,4 +1,9 @@
-import { getRenderPixelRatio } from "./render-performance.js";
+import {
+  getDecorativeRenderPixelRatio,
+  isMobileDisplay,
+} from "./render-performance.js";
+
+const MOBILE_BACKGROUND_FRAME_INTERVAL = 1000 / 30;
 
 const VERTEX_SHADER = `
   attribute vec2 a_position;
@@ -211,11 +216,15 @@ export class SpaceBackground {
       });
     this.pointer = { x: 0, y: 0 };
     this.frameId = null;
+    this.lastRenderedAt = Number.NEGATIVE_INFINITY;
     this.isVisible = !document.hidden;
     this.prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
     this.isStatic = this.prefersReducedMotion;
+    this.minimumFrameInterval = isMobileDisplay()
+      ? MOBILE_BACKGROUND_FRAME_INTERVAL
+      : 0;
 
     if (!this.gl) {
       canvas.classList.add("is-static");
@@ -277,7 +286,7 @@ export class SpaceBackground {
       return;
     }
 
-    const pixelRatio = getRenderPixelRatio(1.35);
+    const pixelRatio = getDecorativeRenderPixelRatio(1.35, 1.5);
     const width = Math.max(
       Math.round(this.canvas.clientWidth * pixelRatio),
       1,
@@ -325,8 +334,18 @@ export class SpaceBackground {
       return;
     }
 
+    if (
+      !this.isStatic &&
+      frameTime - this.lastRenderedAt < this.minimumFrameInterval
+    ) {
+      this.frameId = requestAnimationFrame(this.render);
+      return;
+    }
+
     const gl = this.gl;
     const time = this.isStatic ? 0 : frameTime * 0.001;
+
+    this.lastRenderedAt = frameTime;
 
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     gl.useProgram(this.program);

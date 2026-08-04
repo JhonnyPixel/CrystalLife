@@ -19,7 +19,8 @@ import { GEM_ASSETS } from "./gem-assets.js";
 import { styleGemMaterials } from "./gem-materials.js";
 import { GemModelFactory } from "./gem-model.js";
 import {
-  getRenderPixelRatio,
+  getDecorativeRenderPixelRatio,
+  isMobileDisplay,
   observeRenderVisibility,
 } from "./render-performance.js";
 
@@ -34,13 +35,77 @@ const MODULE_EMISSION_SCALE = 1.5;
 const CARD_CLIP_INSET = 1;
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
+class ModuleGemPostProcessor {
+  constructor(renderer, camera) {
+    const supportsHdr = renderer.capabilities.isWebGL2;
+    const renderTargetOptions = {
+      format: RGBAFormat,
+      stencilBuffer: false,
+      ...(supportsHdr
+        ? {
+            type: HalfFloatType,
+          }
+        : {}),
+    };
+    const renderTarget = new WebGLRenderTarget(
+      1,
+      1,
+      renderTargetOptions,
+    );
+    const bloomPass = new UnrealBloomPass(
+      new Vector2(1, 1),
+      CORE_BLOOM_STRENGTH,
+      CORE_BLOOM_RADIUS,
+      CORE_BLOOM_THRESHOLD,
+    );
+
+    this.renderPass = new RenderPass(new Scene(), camera);
+    this.composer = new EffectComposer(renderer, renderTarget);
+    this.composer.addPass(this.renderPass);
+    this.composer.addPass(bloomPass);
+    this.composer.addPass(new OutputPass());
+    this.pixelRatio = renderer.getPixelRatio();
+    this.renderSize = { width: 0, height: 0 };
+    this.composer.setPixelRatio(this.pixelRatio);
+  }
+
+  setPixelRatio(pixelRatio) {
+    if (pixelRatio === this.pixelRatio) {
+      return;
+    }
+
+    this.pixelRatio = pixelRatio;
+    this.composer.setPixelRatio(pixelRatio);
+  }
+
+  setSize(width, height) {
+    const renderWidth = Math.max(Math.round(width), 1);
+    const renderHeight = Math.max(Math.round(height), 1);
+
+    if (
+      renderWidth === this.renderSize.width &&
+      renderHeight === this.renderSize.height
+    ) {
+      return;
+    }
+
+    this.renderSize = { width: renderWidth, height: renderHeight };
+    this.composer.setSize(renderWidth, renderHeight);
+  }
+
+  render(scene) {
+    this.renderPass.scene = scene;
+    this.composer.render();
+  }
+}
+
 class ModuleGemCard {
   constructor(
     element,
     prefersReducedMotion,
     renderer,
     camera,
-    usePostProcessing,
+    sharedPostProcessing = null,
   ) {
     this.element = element;
     this.asset = GEM_ASSETS[element.dataset.gemModel];
@@ -50,20 +115,18 @@ class ModuleGemCard {
     this.pointerId = null;
     this.lastPointerPosition = null;
     this.angularVelocity = { x: 0, y: 0 };
-    this.renderSize = { width: 0, height: 0 };
-    this.renderer = renderer;
-    this.camera = camera;
-    this.usePostProcessing = usePostProcessing;
 
     if (!this.modelUrl) {
       throw new Error("Configurazione gemma modulo incompleta.");
     }
 
+    this.postProcessing =
+      sharedPostProcessing ??
+      new ModuleGemPostProcessor(renderer, camera);
+    this.ownsPostProcessing = !sharedPostProcessing;
+
     this.interactionElement = this.createInteractionElement();
     this.createScene();
-    if (this.usePostProcessing) {
-      this.createPostProcessing(renderer, camera);
-    }
     this.bindInteraction();
   }
 
@@ -86,38 +149,6 @@ class ModuleGemCard {
     keyLight.position.set(4, 6, 7);
     rimLight.position.set(-4, 2, -5);
     this.scene.add(ambientLight, keyLight, rimLight);
-  }
-
-  createPostProcessing(renderer, camera) {
-    const supportsHdr = renderer.capabilities.isWebGL2;
-    const renderTargetOptions = {
-      format: RGBAFormat,
-      stencilBuffer: false,
-      ...(supportsHdr
-        ? {
-            type: HalfFloatType,
-          }
-        : {}),
-    };
-    const renderTarget = new WebGLRenderTarget(
-      1,
-      1,
-      renderTargetOptions,
-    );
-    const renderPass = new RenderPass(this.scene, camera);
-    const bloomPass = new UnrealBloomPass(
-      new Vector2(1, 1),
-      CORE_BLOOM_STRENGTH,
-      CORE_BLOOM_RADIUS,
-      CORE_BLOOM_THRESHOLD,
-    );
-    const outputPass = new OutputPass();
-
-    this.composer = new EffectComposer(renderer, renderTarget);
-    this.composer.setPixelRatio(renderer.getPixelRatio());
-    this.composer.addPass(renderPass);
-    this.composer.addPass(bloomPass);
-    this.composer.addPass(outputPass);
   }
 
   async load() {
@@ -298,23 +329,11 @@ class ModuleGemCard {
   }
 
   render(width, height) {
-    if (!this.usePostProcessing) {
-      this.renderer.render(this.scene, this.camera);
-      return;
+    if (this.ownsPostProcessing) {
+      this.postProcessing.setSize(width, height);
     }
 
-    const renderWidth = Math.max(Math.round(width), 1);
-    const renderHeight = Math.max(Math.round(height), 1);
-
-    if (
-      renderWidth !== this.renderSize.width ||
-      renderHeight !== this.renderSize.height
-    ) {
-      this.renderSize = { width: renderWidth, height: renderHeight };
-      this.composer.setSize(renderWidth, renderHeight);
-    }
-
-    this.composer.render();
+    this.postProcessing.render(this.scene);
   }
 }
 
@@ -334,6 +353,9 @@ export class ModuleGemGallery {
     ).matches;
 
     this.createScene();
+    this.sharedPostProcessing = isMobileDisplay()
+      ? new ModuleGemPostProcessor(this.renderer, this.camera)
+      : null;
     this.cards = elements.map(
       (element) =>
         new ModuleGemCard(
@@ -341,7 +363,7 @@ export class ModuleGemGallery {
           this.prefersReducedMotion,
           this.renderer,
           this.camera,
-          true,
+          this.sharedPostProcessing,
         ),
     );
     this.observeSize();
@@ -369,7 +391,9 @@ export class ModuleGemGallery {
     this.canvasLayer.append(this.renderer.domElement);
 
     this.renderer.setClearColor(0x000000, 0);
-    this.renderer.setPixelRatio(getRenderPixelRatio(1.5));
+    this.renderer.setPixelRatio(
+      getDecorativeRenderPixelRatio(1.5, 1.5),
+    );
     this.renderer.outputColorSpace = SRGBColorSpace;
     this.renderer.toneMapping = NeutralToneMapping;
     this.renderer.toneMappingExposure = 1;
@@ -452,9 +476,31 @@ export class ModuleGemGallery {
   resize = () => {
     const width = Math.max(this.grid.clientWidth, 1);
     const height = Math.max(this.grid.clientHeight, 1);
+    const pixelRatio = getDecorativeRenderPixelRatio(1.5, 1.5);
 
-    this.renderer.setPixelRatio(getRenderPixelRatio(1.5));
+    this.renderer.setPixelRatio(pixelRatio);
     this.renderer.setSize(width, height, false);
+    new Set(
+      this.cards.map(({ postProcessing }) => postProcessing),
+    ).forEach((postProcessing) => {
+      postProcessing.setPixelRatio(pixelRatio);
+    });
+
+    if (this.sharedPostProcessing) {
+      const maximumCardSize = this.cards.reduce(
+        (maximum, { element }) => ({
+          width: Math.max(maximum.width, element.clientWidth),
+          height: Math.max(maximum.height, element.clientHeight),
+        }),
+        { width: 1, height: 1 },
+      );
+
+      this.sharedPostProcessing.setSize(
+        maximumCardSize.width,
+        maximumCardSize.height,
+      );
+    }
+
     this.updateClipMask(width, height);
   };
 

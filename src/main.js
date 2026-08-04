@@ -1295,6 +1295,7 @@ scheduleIdleTask(initializeHeroGemGalleries);
   new ScrollStory(storyElement, orbitExperience);
 
   if (moduleCardElements.length > 0) {
+    const moduleGridElement = moduleCardElements[0]?.parentElement;
     const initializeModuleGallery = () => {
       try {
         new ModuleGemGallery(moduleCardElements);
@@ -1306,7 +1307,27 @@ scheduleIdleTask(initializeHeroGemGalleries);
       }
     };
 
-    scheduleIdleTask(initializeModuleGallery);
+    if (
+      moduleGridElement &&
+      window.matchMedia(MOBILE_VIEWPORT_QUERY).matches &&
+      "IntersectionObserver" in window
+    ) {
+      const initializationObserver = new IntersectionObserver(
+        ([entry]) => {
+          if (!entry.isIntersecting) {
+            return;
+          }
+
+          initializationObserver.disconnect();
+          scheduleIdleTask(initializeModuleGallery, 300);
+        },
+        { rootMargin: "900px 0px" },
+      );
+
+      initializationObserver.observe(moduleGridElement);
+    } else {
+      scheduleIdleTask(initializeModuleGallery);
+    }
   }
 
   if (featureOrbitElement) {

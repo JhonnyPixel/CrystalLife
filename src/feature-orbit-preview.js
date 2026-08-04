@@ -21,7 +21,7 @@ import {
 import { styleGemMaterials } from "./gem-materials.js";
 import { GemModelFactory } from "./gem-model.js";
 import {
-  getRenderPixelRatio,
+  getDecorativeRenderPixelRatio,
   observeRenderVisibility,
 } from "./render-performance.js";
 import {
@@ -127,7 +127,9 @@ export class FeatureOrbitPreview {
     this.element.append(this.renderer.domElement);
 
     this.renderer.setClearColor(0x000000, 0);
-    this.renderer.setPixelRatio(getRenderPixelRatio(3));
+    this.renderer.setPixelRatio(
+      getDecorativeRenderPixelRatio(3, 2),
+    );
     this.renderer.outputColorSpace = SRGBColorSpace;
     this.renderer.toneMapping = AgXToneMapping;
     this.renderer.toneMappingExposure = 1;
@@ -323,7 +325,7 @@ export class FeatureOrbitPreview {
     const width = Math.max(this.element.clientWidth, 1);
     const height = Math.max(this.element.clientHeight, 1);
     this.renderer.setPixelRatio(
-      getRenderPixelRatio(3, this.renderScale),
+      getDecorativeRenderPixelRatio(3, 2, this.renderScale),
     );
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
