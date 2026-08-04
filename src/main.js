@@ -111,6 +111,7 @@ scheduleIdleTask(initializeHeroGemGalleries);
   const MOBILE_ORBIT_OPACITY = 0.16;
   const ORBIT_OPACITY = 0.075;
   const ORBIT_SCREEN_EDGE_RATIO = 0.94;
+  const MOBILE_TOOLBAR_RESIZE_MAX_PX = 160;
   const GEM_HINT_DURATION_SECONDS = 1.35;
   const GEM_HINT_DELAY_MIN_SECONDS = 2.4;
   const GEM_HINT_DELAY_MAX_SECONDS = 4.2;
@@ -231,6 +232,8 @@ scheduleIdleTask(initializeHeroGemGalleries);
       this.modelLoadPromise = null;
       this.modules = [];
       this.orbits = [];
+      this.renderSize = null;
+      this.forceNextResize = false;
 
       this.createScene();
       this.createCore();
@@ -664,7 +667,8 @@ scheduleIdleTask(initializeHeroGemGalleries);
 
     onContextRestored = () => {
       this.container.classList.remove("is-fallback");
-      this.resize();
+      this.renderSize = null;
+      this.resize(true);
       this.requestRender();
     };
 
@@ -1029,14 +1033,33 @@ scheduleIdleTask(initializeHeroGemGalleries);
       this.frameId = requestAnimationFrame(this.render);
     };
 
-    resize = () => {
+    resize = (force = false) => {
       const width = Math.max(this.container.clientWidth, 1);
       const height = Math.max(this.container.clientHeight, 1);
+      const pixelRatio = getRenderPixelRatio(1.8);
+      const shouldIgnoreBufferResize =
+        !force &&
+        this.isMobileToolbarResize(width, height, pixelRatio);
 
-      this.renderer.setPixelRatio(getRenderPixelRatio(1.8));
       this.camera.aspect = width / height;
       this.camera.updateProjectionMatrix();
-      this.renderer.setSize(width, height, false);
+
+      if (!shouldIgnoreBufferResize) {
+        const shouldResizeBuffer =
+          !this.renderSize ||
+          width !== this.renderSize.width ||
+          height !== this.renderSize.height ||
+          pixelRatio !== this.renderSize.pixelRatio;
+
+        if (shouldResizeBuffer) {
+          if (pixelRatio !== this.renderer.getPixelRatio()) {
+            this.renderer.setPixelRatio(pixelRatio);
+          }
+          this.renderer.setSize(width, height, false);
+          this.renderSize = { height, pixelRatio, width };
+        }
+      }
+
       const orbitOpacity = this.mobileViewport.matches
         ? MOBILE_ORBIT_OPACITY
         : ORBIT_OPACITY;
@@ -1047,19 +1070,48 @@ scheduleIdleTask(initializeHeroGemGalleries);
       this.updateOrbitLayout();
     };
 
-    requestResize = () => {
+    isMobileToolbarResize(width, height, pixelRatio) {
+      if (!this.mobileViewport.matches || !this.renderSize) {
+        return false;
+      }
+
+      const widthDelta = Math.abs(width - this.renderSize.width);
+      const heightDelta = Math.abs(height - this.renderSize.height);
+      const maximumHeightDelta = Math.min(
+        MOBILE_TOOLBAR_RESIZE_MAX_PX,
+        Math.max(64, this.renderSize.height * 0.18),
+      );
+
+      return (
+        widthDelta <= 1 &&
+        heightDelta > 0 &&
+        heightDelta <= maximumHeightDelta &&
+        pixelRatio === this.renderSize.pixelRatio
+      );
+    }
+
+    scheduleResize(force) {
+      this.forceNextResize ||= force;
+
       if (this.resizeFrameId) {
         return;
       }
 
       this.resizeFrameId = requestAnimationFrame(() => {
+        const shouldForceResize = this.forceNextResize;
+
         this.resizeFrameId = null;
-        this.resize();
+        this.forceNextResize = false;
+        this.resize(shouldForceResize);
       });
-    };
+    }
+
+    requestResize = () => this.scheduleResize(false);
+
+    requestForcedResize = () => this.scheduleResize(true);
 
     observeSize() {
-      window.addEventListener("orientationchange", this.requestResize, {
+      window.addEventListener("orientationchange", this.requestForcedResize, {
         passive: true,
       });
 

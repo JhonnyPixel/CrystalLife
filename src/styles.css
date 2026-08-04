@@ -1305,13 +1305,15 @@ h3 {
   transform: scaleX(var(--iphone-screen-circle-correction));
 }
 
-.hero-orbit-preview canvas {
+.hero-orbit-preview canvas,
+.hero-orbit-preview__snapshot {
   display: block;
   width: 100% !important;
   height: 100% !important;
 }
 
-.app-phone--center .hero-orbit-preview canvas {
+.app-phone--center .hero-orbit-preview canvas,
+.app-phone--center .hero-orbit-preview__snapshot {
   transform: scaleX(var(--iphone-screen-circle-correction));
   transform-origin: 50% 50%;
 }
@@ -2210,7 +2212,8 @@ h3 {
   opacity: 0.92;
 }
 
-.module-gem-gallery > canvas {
+.module-gem-gallery > canvas,
+.module-gem-gallery__snapshot {
   z-index: 0;
   display: block;
   width: 100%;

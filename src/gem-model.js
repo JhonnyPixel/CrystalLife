@@ -9,6 +9,10 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 const GEM_VISUAL_SCALE = 0.84;
 const modelLoadCache = new Map();
 
+export const clearGemModelCache = () => {
+  modelLoadCache.clear();
+};
+
 const cloneMaterial = (material, materialClones) => {
   if (!material) {
     return material;

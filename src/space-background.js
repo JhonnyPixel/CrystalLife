@@ -2,8 +2,7 @@ import {
   getDecorativeRenderPixelRatio,
   isMobileDisplay,
 } from "./render-performance.js";
-
-const MOBILE_BACKGROUND_FRAME_INTERVAL = 1000 / 30;
+import { replaceCanvasWithSnapshot } from "./webgl-snapshot.js";
 
 const VERTEX_SHADER = `
   attribute vec2 a_position;
@@ -208,23 +207,25 @@ const createProgram = (gl) => {
 export class SpaceBackground {
   constructor(canvas) {
     this.canvas = canvas;
+    this.useStaticSnapshot = isMobileDisplay();
     this.gl =
-      canvas.getContext("webgl", { alpha: false, antialias: false }) ??
+      canvas.getContext("webgl", {
+        alpha: false,
+        antialias: false,
+        preserveDrawingBuffer: this.useStaticSnapshot,
+      }) ??
       canvas.getContext("experimental-webgl", {
         alpha: false,
         antialias: false,
+        preserveDrawingBuffer: this.useStaticSnapshot,
       });
     this.pointer = { x: 0, y: 0 };
     this.frameId = null;
-    this.lastRenderedAt = Number.NEGATIVE_INFINITY;
     this.isVisible = !document.hidden;
     this.prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
-    this.isStatic = this.prefersReducedMotion;
-    this.minimumFrameInterval = isMobileDisplay()
-      ? MOBILE_BACKGROUND_FRAME_INTERVAL
-      : 0;
+    this.isStatic = this.prefersReducedMotion || this.useStaticSnapshot;
 
     if (!this.gl) {
       canvas.classList.add("is-static");
@@ -251,6 +252,10 @@ export class SpaceBackground {
     document.addEventListener("visibilitychange", this.onVisibilityChange);
     this.resize();
     this.render(0);
+
+    if (this.useStaticSnapshot) {
+      void this.captureStaticSnapshot();
+    }
   }
 
   setupRenderer() {
@@ -259,9 +264,9 @@ export class SpaceBackground {
     this.program = createProgram(gl);
     gl.useProgram(this.program);
 
-    const vertices = gl.createBuffer();
+    this.vertexBuffer = gl.createBuffer();
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertices);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
     gl.bufferData(
       gl.ARRAY_BUFFER,
       new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
@@ -327,6 +332,56 @@ export class SpaceBackground {
     }
   };
 
+  captureStaticSnapshot = async () => {
+    const canvas = this.canvas;
+
+    if (!canvas || !this.gl) {
+      return;
+    }
+
+    const didReplaceCanvas = await replaceCanvasWithSnapshot(canvas, {
+      className: "space-background space-background--snapshot",
+    });
+
+    if (didReplaceCanvas) {
+      this.releaseRenderer();
+    }
+  };
+
+  releaseRenderer() {
+    const gl = this.gl;
+
+    if (!gl) {
+      return;
+    }
+
+    this.resizeObserver?.disconnect();
+    window.removeEventListener("resize", this.resize);
+    window.removeEventListener("pointermove", this.onPointerMove);
+    document.removeEventListener(
+      "visibilitychange",
+      this.onVisibilityChange,
+    );
+
+    if (this.frameId !== null) {
+      cancelAnimationFrame(this.frameId);
+      this.frameId = null;
+    }
+
+    if (this.vertexBuffer) {
+      gl.deleteBuffer(this.vertexBuffer);
+    }
+    if (this.program) {
+      gl.deleteProgram(this.program);
+    }
+
+    gl.getExtension("WEBGL_lose_context")?.loseContext();
+    this.vertexBuffer = null;
+    this.program = null;
+    this.gl = null;
+    this.canvas = null;
+  }
+
   render = (frameTime) => {
     this.frameId = null;
 
@@ -334,18 +389,8 @@ export class SpaceBackground {
       return;
     }
 
-    if (
-      !this.isStatic &&
-      frameTime - this.lastRenderedAt < this.minimumFrameInterval
-    ) {
-      this.frameId = requestAnimationFrame(this.render);
-      return;
-    }
-
     const gl = this.gl;
     const time = this.isStatic ? 0 : frameTime * 0.001;
-
-    this.lastRenderedAt = frameTime;
 
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     gl.useProgram(this.program);

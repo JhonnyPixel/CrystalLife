@@ -17,12 +17,16 @@ import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { GEM_ASSETS } from "./gem-assets.js";
 import { styleGemMaterials } from "./gem-materials.js";
-import { GemModelFactory } from "./gem-model.js";
+import {
+  clearGemModelCache,
+  GemModelFactory,
+} from "./gem-model.js";
 import {
   getDecorativeRenderPixelRatio,
   isMobileDisplay,
   observeRenderVisibility,
 } from "./render-performance.js";
+import { replaceCanvasWithSnapshot } from "./webgl-snapshot.js";
 
 const MODEL_SIZE = 1.05;
 const DRAG_SENSITIVITY = 0.011;
@@ -52,18 +56,19 @@ class ModuleGemPostProcessor {
       1,
       renderTargetOptions,
     );
-    const bloomPass = new UnrealBloomPass(
+    this.bloomPass = new UnrealBloomPass(
       new Vector2(1, 1),
       CORE_BLOOM_STRENGTH,
       CORE_BLOOM_RADIUS,
       CORE_BLOOM_THRESHOLD,
     );
+    this.outputPass = new OutputPass();
 
     this.renderPass = new RenderPass(new Scene(), camera);
     this.composer = new EffectComposer(renderer, renderTarget);
     this.composer.addPass(this.renderPass);
-    this.composer.addPass(bloomPass);
-    this.composer.addPass(new OutputPass());
+    this.composer.addPass(this.bloomPass);
+    this.composer.addPass(this.outputPass);
     this.pixelRatio = renderer.getPixelRatio();
     this.renderSize = { width: 0, height: 0 };
     this.composer.setPixelRatio(this.pixelRatio);
@@ -96,6 +101,12 @@ class ModuleGemPostProcessor {
   render(scene) {
     this.renderPass.scene = scene;
     this.composer.render();
+  }
+
+  dispose() {
+    this.composer.dispose();
+    this.bloomPass.dispose();
+    this.outputPass.dispose();
   }
 }
 
@@ -169,8 +180,6 @@ class ModuleGemCard {
     this.visual = visual;
     this.scene.add(visual);
     this.element.classList.add("has-gem");
-
-    return factory;
   }
 
   bindInteraction() {
@@ -335,6 +344,45 @@ class ModuleGemCard {
 
     this.postProcessing.render(this.scene);
   }
+
+  release() {
+    if (
+      this.pointerId !== null &&
+      this.interactionElement.hasPointerCapture(this.pointerId)
+    ) {
+      this.interactionElement.releasePointerCapture(this.pointerId);
+    }
+
+    this.interactionElement.removeEventListener(
+      "pointerdown",
+      this.onPointerDown,
+    );
+    this.interactionElement.removeEventListener(
+      "pointermove",
+      this.onPointerMove,
+    );
+    this.interactionElement.removeEventListener(
+      "pointerup",
+      this.onPointerEnd,
+    );
+    this.interactionElement.removeEventListener(
+      "pointercancel",
+      this.onPointerEnd,
+    );
+    this.interactionElement.removeEventListener(
+      "lostpointercapture",
+      this.onPointerEnd,
+    );
+    this.element.removeEventListener("keydown", this.onKeyDown);
+    this.element.removeAttribute("tabindex");
+    this.element.removeAttribute("aria-label");
+    this.element.classList.remove("has-gem", "is-rotating");
+    this.interactionElement.remove();
+    this.scene.clear();
+    this.visual = null;
+    this.scene = null;
+    this.postProcessing = null;
+  }
 }
 
 export class ModuleGemGallery {
@@ -347,13 +395,15 @@ export class ModuleGemGallery {
 
     this.isVisible = false;
     this.hasStartedLoading = false;
+    this.hasStaticSnapshot = false;
     this.lastFrameTime = performance.now();
+    this.useStaticSnapshot = isMobileDisplay();
     this.prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
 
     this.createScene();
-    this.sharedPostProcessing = isMobileDisplay()
+    this.sharedPostProcessing = this.useStaticSnapshot
       ? new ModuleGemPostProcessor(this.renderer, this.camera)
       : null;
     this.cards = elements.map(
@@ -370,7 +420,9 @@ export class ModuleGemGallery {
     this.observeVisibility();
     this.observeLoading();
     this.resize();
-    this.frameId = requestAnimationFrame(this.render);
+    this.frameId = this.useStaticSnapshot
+      ? null
+      : requestAnimationFrame(this.render);
   }
 
   createScene() {
@@ -387,6 +439,7 @@ export class ModuleGemGallery {
       alpha: true,
       antialias: true,
       powerPreference: "high-performance",
+      preserveDrawingBuffer: this.useStaticSnapshot,
     });
     this.canvasLayer.append(this.renderer.domElement);
 
@@ -423,6 +476,10 @@ export class ModuleGemGallery {
     });
 
     this.canvasLayer.classList.add("is-ready");
+
+    if (this.useStaticSnapshot) {
+      await this.captureStaticSnapshot();
+    }
   }
 
   observeLoading() {
@@ -460,7 +517,7 @@ export class ModuleGemGallery {
       this.grid,
       (isVisible) => {
         this.isVisible = isVisible;
-        if (isVisible) {
+        if (isVisible && !this.useStaticSnapshot) {
           this.lastFrameTime = performance.now();
           if (this.frameId === null) {
             this.frameId = requestAnimationFrame(this.render);
@@ -474,6 +531,10 @@ export class ModuleGemGallery {
   }
 
   resize = () => {
+    if (!this.renderer) {
+      return;
+    }
+
     const width = Math.max(this.grid.clientWidth, 1);
     const height = Math.max(this.grid.clientHeight, 1);
     const pixelRatio = getDecorativeRenderPixelRatio(1.5, 1.5);
@@ -541,7 +602,7 @@ export class ModuleGemGallery {
     this.canvasLayer.style.webkitMaskImage = maskImage;
   }
 
-  renderCard(card, gridBounds) {
+  renderCard(card, gridBounds, onlyWhenVisible = true) {
     if (!card.visual) {
       return;
     }
@@ -549,10 +610,11 @@ export class ModuleGemGallery {
     const cardBounds = card.element.getBoundingClientRect();
 
     if (
-      cardBounds.bottom <= 0 ||
-      cardBounds.right <= 0 ||
-      cardBounds.top >= window.innerHeight ||
-      cardBounds.left >= window.innerWidth
+      onlyWhenVisible &&
+      (cardBounds.bottom <= 0 ||
+        cardBounds.right <= 0 ||
+        cardBounds.top >= window.innerHeight ||
+        cardBounds.left >= window.innerWidth)
     ) {
       return;
     }
@@ -570,10 +632,88 @@ export class ModuleGemGallery {
     card.render(width, height);
   }
 
+  renderStaticFrame() {
+    if (!this.renderer) {
+      return;
+    }
+
+    const gridBounds = this.grid.getBoundingClientRect();
+
+    this.renderer.setScissorTest(false);
+    this.renderer.clear(true, true, true);
+    this.renderer.setScissorTest(true);
+    this.cards.forEach((card) => card.update(0));
+    this.cards.forEach((card) => {
+      this.renderCard(card, gridBounds, false);
+    });
+  }
+
+  captureStaticSnapshot = async () => {
+    if (this.hasStaticSnapshot || !this.renderer) {
+      return;
+    }
+
+    this.hasStaticSnapshot = true;
+
+    if (this.frameId !== null) {
+      cancelAnimationFrame(this.frameId);
+      this.frameId = null;
+    }
+
+    this.renderStaticFrame();
+    const canvas = this.renderer.domElement;
+    const didReplaceCanvas = await replaceCanvasWithSnapshot(canvas, {
+      className: "module-gem-gallery__snapshot",
+    });
+
+    if (didReplaceCanvas) {
+      this.releaseRenderer();
+      return;
+    }
+
+    this.hasStaticSnapshot = false;
+  };
+
+  releaseRenderer() {
+    const renderer = this.renderer;
+
+    if (!renderer) {
+      return;
+    }
+
+    this.loadObserver?.disconnect();
+    this.resizeObserver?.disconnect();
+    this.visibilityObserver?.disconnect();
+    window.removeEventListener("resize", this.resize);
+
+    if (this.frameId !== null) {
+      cancelAnimationFrame(this.frameId);
+      this.frameId = null;
+    }
+
+    const postProcessors = new Set(
+      this.cards.map(({ postProcessing }) => postProcessing),
+    );
+
+    postProcessors.forEach((postProcessing) => {
+      postProcessing.dispose();
+    });
+    this.cards.forEach((card) => card.release());
+    renderer.dispose();
+    renderer.forceContextLoss();
+    this.scene.clear();
+    this.cards = [];
+    this.sharedPostProcessing = null;
+    this.renderer = null;
+    this.camera = null;
+    this.scene = null;
+    clearGemModelCache();
+  }
+
   render = (frameTime) => {
     this.frameId = null;
 
-    if (!this.isVisible) {
+    if (!this.renderer || !this.isVisible) {
       return;
     }
 
@@ -591,6 +731,8 @@ export class ModuleGemGallery {
     this.cards.forEach((card) => card.update(deltaSeconds));
     this.cards.forEach((card) => this.renderCard(card, gridBounds));
 
-    this.frameId = requestAnimationFrame(this.render);
+    if (!this.useStaticSnapshot) {
+      this.frameId = requestAnimationFrame(this.render);
+    }
   };
 }

@@ -22,12 +22,14 @@ import { styleGemMaterials } from "./gem-materials.js";
 import { GemModelFactory } from "./gem-model.js";
 import {
   getDecorativeRenderPixelRatio,
+  isMobileDisplay,
   observeRenderVisibility,
 } from "./render-performance.js";
 import {
   styleSunMaterials,
   SunEffects,
 } from "./sun-effects.js";
+import { replaceCanvasWithSnapshot } from "./webgl-snapshot.js";
 
 const CORE_SIZE = 0.7;
 const MAX_DELTA_SECONDS = 0.05;
@@ -89,6 +91,8 @@ export class FeatureOrbitPreview {
     this.isAnimationEnabled = true;
     this.frameId = null;
     this.hasStartedLoading = false;
+    this.hasStaticSnapshot = false;
+    this.useStaticSnapshot = isMobileDisplay();
     this.prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
@@ -123,6 +127,7 @@ export class FeatureOrbitPreview {
       alpha: true,
       antialias: true,
       powerPreference: "high-performance",
+      preserveDrawingBuffer: this.useStaticSnapshot,
     });
     this.element.append(this.renderer.domElement);
 
@@ -250,6 +255,10 @@ export class FeatureOrbitPreview {
 
     this.element.classList.add("is-ready");
     this.renderStaticFrame();
+
+    if (this.useStaticSnapshot) {
+      await this.captureStaticSnapshot();
+    }
   }
 
   async loadCoreModel() {
@@ -266,7 +275,6 @@ export class FeatureOrbitPreview {
     this.coreFallback.traverse(disposeMesh);
     this.core.add(visual);
     this.coreFallback = null;
-    return factory;
   }
 
   async loadModuleModel(module) {
@@ -290,7 +298,6 @@ export class FeatureOrbitPreview {
     module.mesh.add(visual);
     module.visual = visual;
     module.fallback = null;
-    return factory;
   }
 
   observeSize() {
@@ -322,6 +329,10 @@ export class FeatureOrbitPreview {
   }
 
   resize = () => {
+    if (!this.renderer) {
+      return;
+    }
+
     const width = Math.max(this.element.clientWidth, 1);
     const height = Math.max(this.element.clientHeight, 1);
     this.renderer.setPixelRatio(
@@ -360,6 +371,7 @@ export class FeatureOrbitPreview {
 
   requestRender() {
     if (
+      !this.renderer ||
       !this.isVisible ||
       !this.isAnimationEnabled ||
       this.frameId !== null
@@ -372,8 +384,71 @@ export class FeatureOrbitPreview {
   }
 
   renderStaticFrame() {
+    if (!this.renderer) {
+      return;
+    }
+
     this.update(0);
     this.renderer.render(this.scene, this.camera);
+  }
+
+  captureStaticSnapshot = async () => {
+    if (this.hasStaticSnapshot || !this.renderer) {
+      return;
+    }
+
+    this.hasStaticSnapshot = true;
+    this.isAnimationEnabled = false;
+
+    if (this.frameId !== null) {
+      cancelAnimationFrame(this.frameId);
+      this.frameId = null;
+    }
+
+    this.renderStaticFrame();
+    const canvas = this.renderer.domElement;
+    const didReplaceCanvas = await replaceCanvasWithSnapshot(canvas, {
+      className: "hero-orbit-preview__snapshot",
+    });
+
+    if (didReplaceCanvas) {
+      this.releaseRenderer();
+      return;
+    }
+
+    this.hasStaticSnapshot = false;
+  };
+
+  releaseRenderer() {
+    const renderer = this.renderer;
+
+    if (!renderer) {
+      return;
+    }
+
+    this.resizeObserver?.disconnect();
+    this.visibilityObserver?.disconnect();
+    window.removeEventListener("resize", this.resize);
+    renderer.domElement.removeEventListener(
+      "webglcontextlost",
+      this.onContextLost,
+    );
+    renderer.domElement.removeEventListener(
+      "webglcontextrestored",
+      this.onContextRestored,
+    );
+    renderer.dispose();
+    renderer.forceContextLoss();
+    this.scene.clear();
+    this.world.clear();
+    this.modules = [];
+    this.core = null;
+    this.coreFallback = null;
+    this.sunEffects = null;
+    this.world = null;
+    this.scene = null;
+    this.camera = null;
+    this.renderer = null;
   }
 
   onContextLost = (event) => {
@@ -387,6 +462,10 @@ export class FeatureOrbitPreview {
   };
 
   onContextRestored = () => {
+    if (!this.renderer) {
+      return;
+    }
+
     this.element.classList.remove("is-fallback");
     this.resize();
 
@@ -397,7 +476,11 @@ export class FeatureOrbitPreview {
   render = (frameTime) => {
     this.frameId = null;
 
-    if (!this.isVisible || !this.isAnimationEnabled) {
+    if (
+      !this.renderer ||
+      !this.isVisible ||
+      !this.isAnimationEnabled
+    ) {
       return;
     }
 
