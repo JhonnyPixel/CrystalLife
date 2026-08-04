@@ -19,8 +19,8 @@ import { GEM_ASSETS } from "./gem-assets.js";
 import { styleGemMaterials } from "./gem-materials.js";
 import { GemModelFactory } from "./gem-model.js";
 import {
+  getRenderPixelRatio,
   observeRenderVisibility,
-  RenderBudget,
 } from "./render-performance.js";
 
 const MODEL_SIZE = 1.05;
@@ -283,10 +283,6 @@ class ModuleGemCard {
     this.angularVelocity.y *= damping;
   }
 
-  get isInteracting() {
-    return this.pointerId !== null;
-  }
-
   positionVisual(aspect) {
     if (!this.visual) {
       return;
@@ -333,11 +329,6 @@ export class ModuleGemGallery {
     this.isVisible = false;
     this.hasStartedLoading = false;
     this.lastFrameTime = performance.now();
-    this.renderBudget = new RenderBudget({
-      desktopPixelRatio: 1.5,
-      mobileFps: 60,
-      mobilePixelRatio: 1.5,
-    });
     this.prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
@@ -350,7 +341,7 @@ export class ModuleGemGallery {
           this.prefersReducedMotion,
           this.renderer,
           this.camera,
-          !this.renderBudget.isMobile,
+          true,
         ),
     );
     this.observeSize();
@@ -372,15 +363,13 @@ export class ModuleGemGallery {
 
     this.renderer = new WebGLRenderer({
       alpha: true,
-      antialias: !this.renderBudget.isMobile,
-      powerPreference: this.renderBudget.isMobile
-        ? "low-power"
-        : "high-performance",
+      antialias: true,
+      powerPreference: "high-performance",
     });
     this.canvasLayer.append(this.renderer.domElement);
 
     this.renderer.setClearColor(0x000000, 0);
-    this.renderer.setPixelRatio(this.renderBudget.getPixelRatio());
+    this.renderer.setPixelRatio(getRenderPixelRatio(1.5));
     this.renderer.outputColorSpace = SRGBColorSpace;
     this.renderer.toneMapping = NeutralToneMapping;
     this.renderer.toneMappingExposure = 1;
@@ -395,23 +384,9 @@ export class ModuleGemGallery {
     }
 
     this.hasStartedLoading = true;
-    const results = [];
-
-    if (this.renderBudget.isMobile) {
-      for (const card of this.cards) {
-        try {
-          results.push({ status: "fulfilled", value: await card.load() });
-        } catch (reason) {
-          results.push({ status: "rejected", reason });
-        }
-
-        await new Promise((resolve) => requestAnimationFrame(resolve));
-      }
-    } else {
-      results.push(
-        ...(await Promise.allSettled(this.cards.map((card) => card.load()))),
-      );
-    }
+    const results = await Promise.allSettled(
+      this.cards.map((card) => card.load()),
+    );
 
     results.forEach((result, index) => {
       if (result.status === "rejected") {
@@ -463,7 +438,6 @@ export class ModuleGemGallery {
         this.isVisible = isVisible;
         if (isVisible) {
           this.lastFrameTime = performance.now();
-          this.renderBudget.reset();
           if (this.frameId === null) {
             this.frameId = requestAnimationFrame(this.render);
           }
@@ -479,7 +453,7 @@ export class ModuleGemGallery {
     const width = Math.max(this.grid.clientWidth, 1);
     const height = Math.max(this.grid.clientHeight, 1);
 
-    this.renderer.setPixelRatio(this.renderBudget.getPixelRatio());
+    this.renderer.setPixelRatio(getRenderPixelRatio(1.5));
     this.renderer.setSize(width, height, false);
     this.updateClipMask(width, height);
   };
@@ -554,13 +528,6 @@ export class ModuleGemGallery {
     this.frameId = null;
 
     if (!this.isVisible) {
-      return;
-    }
-
-    const isInteracting = this.cards.some((card) => card.isInteracting);
-
-    if (!this.renderBudget.shouldRender(frameTime, isInteracting)) {
-      this.frameId = requestAnimationFrame(this.render);
       return;
     }
 

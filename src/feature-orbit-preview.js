@@ -21,8 +21,8 @@ import {
 import { styleGemMaterials } from "./gem-materials.js";
 import { GemModelFactory } from "./gem-model.js";
 import {
+  getRenderPixelRatio,
   observeRenderVisibility,
-  RenderBudget,
 } from "./render-performance.js";
 import {
   styleSunMaterials,
@@ -89,11 +89,6 @@ export class FeatureOrbitPreview {
     this.isAnimationEnabled = true;
     this.frameId = null;
     this.hasStartedLoading = false;
-    this.renderBudget = new RenderBudget({
-      desktopPixelRatio: 3,
-      mobileFps: 60,
-      mobilePixelRatio: 1.4,
-    });
     this.prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
@@ -132,7 +127,7 @@ export class FeatureOrbitPreview {
     this.element.append(this.renderer.domElement);
 
     this.renderer.setClearColor(0x000000, 0);
-    this.renderer.setPixelRatio(this.renderBudget.getPixelRatio());
+    this.renderer.setPixelRatio(getRenderPixelRatio(3));
     this.renderer.outputColorSpace = SRGBColorSpace;
     this.renderer.toneMapping = AgXToneMapping;
     this.renderer.toneMappingExposure = 1;
@@ -312,7 +307,6 @@ export class FeatureOrbitPreview {
       (isVisible) => {
         this.isVisible = isVisible;
         this.lastFrameTime = performance.now();
-        this.renderBudget.reset();
 
         if (isVisible) {
           this.loadModelsOnce();
@@ -329,7 +323,7 @@ export class FeatureOrbitPreview {
     const width = Math.max(this.element.clientWidth, 1);
     const height = Math.max(this.element.clientHeight, 1);
     this.renderer.setPixelRatio(
-      this.renderBudget.getPixelRatio(this.renderScale),
+      getRenderPixelRatio(3, this.renderScale),
     );
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
@@ -372,7 +366,6 @@ export class FeatureOrbitPreview {
     }
 
     this.lastFrameTime = performance.now();
-    this.renderBudget.reset();
     this.frameId = requestAnimationFrame(this.render);
   }
 
@@ -403,11 +396,6 @@ export class FeatureOrbitPreview {
     this.frameId = null;
 
     if (!this.isVisible || !this.isAnimationEnabled) {
-      return;
-    }
-
-    if (!this.renderBudget.shouldRender(frameTime)) {
-      this.frameId = requestAnimationFrame(this.render);
       return;
     }
 

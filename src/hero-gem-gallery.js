@@ -11,9 +11,9 @@ import { GEM_ASSETS } from "./gem-assets.js";
 import { styleGemMaterials } from "./gem-materials.js";
 import { GemModelFactory } from "./gem-model.js";
 import {
+  getRenderPixelRatio,
   isElementInViewport,
   observeRenderVisibility,
-  RenderBudget,
 } from "./render-performance.js";
 
 const MAX_DELTA_SECONDS = 0.05;
@@ -104,18 +104,11 @@ export class HeroGemGallery {
     this.frameId = null;
     this.isLoaded = false;
     this.hasStaticSnapshot = false;
-    this.readyPromise = new Promise((resolve) => {
-      this.resolveReady = resolve;
-    });
-    this.renderBudget = new RenderBudget({
-      desktopPixelRatio: this.isModuleGallery ? 1 : 1.5,
-      mobileFps: 60,
-      mobilePixelRatio: this.isModuleGallery ? 0.75 : 1.35,
-    });
+    this.desktopMaximumPixelRatio = this.isModuleGallery ? 1 : 1.5;
     this.prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
-    this.isStatic = this.prefersReducedMotion || this.renderBudget.isMobile;
+    this.isStatic = this.prefersReducedMotion;
 
     this.createRenderer();
     this.observeSize();
@@ -135,16 +128,16 @@ export class HeroGemGallery {
     this.camera.position.set(0, 0, 5.2);
     this.renderer = new WebGLRenderer({
       alpha: true,
-      antialias: !this.renderBudget.isMobile,
-      powerPreference: this.renderBudget.isMobile
-        ? "low-power"
-        : "high-performance",
+      antialias: true,
+      powerPreference: "high-performance",
       preserveDrawingBuffer: this.isStatic,
     });
     this.canvasLayer.append(this.renderer.domElement);
 
     this.renderer.setClearColor(0x000000, 0);
-    this.renderer.setPixelRatio(this.renderBudget.getPixelRatio());
+    this.renderer.setPixelRatio(
+      getRenderPixelRatio(this.desktopMaximumPixelRatio),
+    );
     this.renderer.outputColorSpace = SRGBColorSpace;
     this.renderer.toneMapping = AgXToneMapping;
     this.renderer.toneMappingExposure = 1.1;
@@ -154,25 +147,9 @@ export class HeroGemGallery {
   }
 
   async load() {
-    const results = [];
-
-    if (this.renderBudget.isMobile) {
-      for (const preview of this.previews) {
-        try {
-          results.push({ status: "fulfilled", value: await preview.load() });
-        } catch (reason) {
-          results.push({ status: "rejected", reason });
-        }
-
-        await new Promise((resolve) => requestAnimationFrame(resolve));
-      }
-    } else {
-      results.push(
-        ...(await Promise.allSettled(
-          this.previews.map((preview) => preview.load()),
-        )),
-      );
-    }
+    const results = await Promise.allSettled(
+      this.previews.map((preview) => preview.load()),
+    );
 
     results.forEach((result, index) => {
       if (result.status === "fulfilled") {
@@ -188,13 +165,8 @@ export class HeroGemGallery {
     if (this.isStatic) {
       this.renderStaticSnapshot();
     } else {
-      this.resolveReady();
       this.requestRender();
     }
-  }
-
-  whenReady() {
-    return this.readyPromise;
   }
 
   observeSize() {
@@ -213,7 +185,6 @@ export class HeroGemGallery {
       (isVisible) => {
         this.isVisible = isVisible;
         this.lastFrameTime = performance.now();
-        this.renderBudget.reset();
 
         if (isVisible) {
           this.requestRender();
@@ -230,7 +201,9 @@ export class HeroGemGallery {
       return;
     }
 
-    this.renderer.setPixelRatio(this.renderBudget.getPixelRatio());
+    this.renderer.setPixelRatio(
+      getRenderPixelRatio(this.desktopMaximumPixelRatio),
+    );
     this.renderer.setSize(
       Math.max(this.root.clientWidth, 1),
       Math.max(this.root.clientHeight, 1),
@@ -259,7 +232,6 @@ export class HeroGemGallery {
     }
 
     this.lastFrameTime = performance.now();
-    this.renderBudget.reset();
     this.frameId = requestAnimationFrame(this.render);
   }
 
@@ -335,7 +307,6 @@ export class HeroGemGallery {
     this.renderer = null;
     this.previews = [];
     this.elements = [];
-    this.resolveReady();
   }
 
   render = (frameTime) => {
@@ -351,11 +322,6 @@ export class HeroGemGallery {
     );
 
     this.lastFrameTime = frameTime;
-
-    if (!this.isStatic && !this.renderBudget.shouldRender(frameTime)) {
-      this.frameId = requestAnimationFrame(this.render);
-      return;
-    }
 
     this.renderer.setScissorTest(false);
     this.renderer.clear(true, true, true);

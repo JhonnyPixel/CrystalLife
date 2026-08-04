@@ -1,4 +1,4 @@
-import { MOBILE_PERFORMANCE_QUERY } from "./render-performance.js";
+import { MOBILE_VIEWPORT_QUERY } from "./render-performance.js";
 
 const clamp = (value, min = 0, max = 1) =>
   Math.min(max, Math.max(min, value));
@@ -27,7 +27,7 @@ export class HeroShowcase {
     this.onOrbitProgressChange = onOrbitProgressChange;
     this.isTicking = false;
     this.narrowViewport = window.matchMedia("(max-width: 860px)");
-    this.mobilePerformance = window.matchMedia(MOBILE_PERFORMANCE_QUERY);
+    this.mobileViewport = window.matchMedia(MOBILE_VIEWPORT_QUERY);
     this.prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     );
@@ -95,6 +95,11 @@ export class HeroShowcase {
   }
 
   writeStyles(progress, isPastShowcase) {
+    if (this.mobileViewport.matches) {
+      this.writeDirectMobileStyles();
+      return;
+    }
+
     const focusProgress = smoothstep(0.06, 0.48, progress);
     const orbitRevealProgress = smoothstep(0.16, 0.86, progress);
     const orbitVisibility = this.useSimpleTransition
@@ -126,10 +131,8 @@ export class HeroShowcase {
       this.useSimpleTransition ? 0 : 1.1,
       smoothstep(0.34, 0.72, progress) * maskExit,
     );
-    const useAnimatedOrbitClip =
-      !this.useSimpleTransition && !this.mobilePerformance.matches;
     const { radius: originRadius, x: originX, y: originY } =
-      !useAnimatedOrbitClip
+      this.useSimpleTransition
       ? { radius: 145, x: 50, y: 50 }
       : this.getOrbitOrigin();
     const clipX = lerp(originX, 50, orbitRevealProgress);
@@ -177,5 +180,30 @@ export class HeroShowcase {
       this.useSimpleTransition ? 0 : orbitRevealProgress,
       !this.useSimpleTransition && !isPastShowcase && stageOpacity > 0.01,
     );
+  }
+
+  writeDirectMobileStyles() {
+    const style = this.element.style;
+    const rootStyle = document.documentElement.style;
+
+    style.setProperty("--showcase-progress", "0");
+    style.setProperty("--showcase-device-scale", "1");
+    style.setProperty("--showcase-device-shift-y", "0px");
+    style.setProperty("--showcase-copy-opacity", "1");
+    style.setProperty("--showcase-copy-shift", "0px");
+    style.setProperty("--showcase-side-opacity", "1");
+    style.setProperty("--showcase-stage-opacity", "1");
+    style.setProperty("--showcase-cue-opacity", "1");
+    style.setProperty("--phone-orbit-opacity", "1");
+    style.setProperty("--showcase-device-blur", "0px");
+    rootStyle.setProperty("--transition-mask-opacity", "0");
+    rootStyle.setProperty("--orbit-intro-opacity", "0");
+    rootStyle.setProperty("--orbit-clip-radius", "145vmax");
+    rootStyle.setProperty("--orbit-clip-x", "50%");
+    rootStyle.setProperty("--orbit-clip-y", "50%");
+    rootStyle.setProperty("--orbit-canvas-shift-x", "0vw");
+    rootStyle.setProperty("--orbit-canvas-shift-y", "0vh");
+    this.onDeviceScaleChange?.(1);
+    this.onOrbitProgressChange?.(0, false);
   }
 }

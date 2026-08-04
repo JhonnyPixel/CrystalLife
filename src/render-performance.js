@@ -1,35 +1,20 @@
-export const MOBILE_PERFORMANCE_QUERY =
+const MOBILE_DISPLAY_QUERY =
   "(max-width: 700px), (hover: none) and (pointer: coarse)";
-const FRAME_TIME_TOLERANCE_MS = 0.75;
 
-export const isIOSWebKitDevice = () => {
-  const userAgent = navigator.userAgent ?? "";
-  const platform = navigator.platform ?? "";
+export const MOBILE_VIEWPORT_QUERY =
+  "(max-width: 560px), (hover: none) and (pointer: coarse)";
 
-  return (
-    /iPad|iPhone|iPod/i.test(userAgent) ||
-    (platform === "MacIntel" && navigator.maxTouchPoints > 1)
-  );
-};
-
-export const initializeMobilePerformanceMode = (
-  root = document.documentElement,
+export const getRenderPixelRatio = (
+  desktopMaximumPixelRatio,
+  scale = 1,
 ) => {
-  const mobileViewport = window.matchMedia(MOBILE_PERFORMANCE_QUERY);
-  const updateMode = () => {
-    root.classList.toggle(
-      "is-mobile-performance",
-      mobileViewport.matches,
-    );
-  };
+  const nativePixelRatio = Math.max(window.devicePixelRatio || 1, 1) * scale;
 
-  updateMode();
-
-  if (typeof mobileViewport.addEventListener === "function") {
-    mobileViewport.addEventListener("change", updateMode);
-  } else {
-    mobileViewport.addListener(updateMode);
+  if (window.matchMedia(MOBILE_DISPLAY_QUERY).matches) {
+    return nativePixelRatio;
   }
+
+  return Math.min(nativePixelRatio, desktopMaximumPixelRatio);
 };
 
 export const isElementInViewport = (element) => {
@@ -63,64 +48,6 @@ export const observeRenderVisibility = (
   observer.observe(element);
   return observer;
 };
-
-export class RenderBudget {
-  constructor({
-    desktopPixelRatio,
-    mobileActiveFps = 60,
-    mobileFps = 60,
-    mobilePixelRatio = 1,
-  }) {
-    this.desktopPixelRatio = desktopPixelRatio;
-    this.mobileActiveFrameInterval = 1000 / mobileActiveFps;
-    this.mobileFrameInterval = 1000 / mobileFps;
-    this.mobilePixelRatio = mobilePixelRatio;
-    this.mobileViewport = window.matchMedia(MOBILE_PERFORMANCE_QUERY);
-    this.lastRenderedAt = null;
-  }
-
-  get isMobile() {
-    return this.mobileViewport.matches;
-  }
-
-  getPixelRatio(scale = 1) {
-    const maximumPixelRatio = this.isMobile
-      ? this.mobilePixelRatio
-      : this.desktopPixelRatio;
-
-    return Math.min((window.devicePixelRatio || 1) * scale, maximumPixelRatio);
-  }
-
-  shouldRender(frameTime, useActiveRate = false) {
-    if (!this.isMobile) {
-      return true;
-    }
-
-    if (this.lastRenderedAt === null) {
-      this.lastRenderedAt = frameTime;
-      return true;
-    }
-
-    const frameInterval = useActiveRate
-      ? this.mobileActiveFrameInterval
-      : this.mobileFrameInterval;
-    const elapsed = frameTime - this.lastRenderedAt;
-
-    if (elapsed + FRAME_TIME_TOLERANCE_MS < frameInterval) {
-      return false;
-    }
-
-    const cadenceOvershoot =
-      elapsed >= frameInterval ? elapsed % frameInterval : 0;
-
-    this.lastRenderedAt = frameTime - cadenceOvershoot;
-    return true;
-  }
-
-  reset() {
-    this.lastRenderedAt = null;
-  }
-}
 
 export const scheduleIdleTask = (task, timeout = 700) => {
   if ("requestIdleCallback" in window) {

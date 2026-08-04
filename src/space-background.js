@@ -1,4 +1,4 @@
-import { RenderBudget } from "./render-performance.js";
+import { getRenderPixelRatio } from "./render-performance.js";
 
 const VERTEX_SHADER = `
   attribute vec2 a_position;
@@ -212,15 +212,10 @@ export class SpaceBackground {
     this.pointer = { x: 0, y: 0 };
     this.frameId = null;
     this.isVisible = !document.hidden;
-    this.renderBudget = new RenderBudget({
-      desktopPixelRatio: 1.35,
-      mobileFps: 20,
-      mobilePixelRatio: 1.25,
-    });
     this.prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
-    this.isStatic = this.prefersReducedMotion || this.renderBudget.isMobile;
+    this.isStatic = this.prefersReducedMotion;
 
     if (!this.gl) {
       canvas.classList.add("is-static");
@@ -282,7 +277,7 @@ export class SpaceBackground {
       return;
     }
 
-    const pixelRatio = this.renderBudget.getPixelRatio();
+    const pixelRatio = getRenderPixelRatio(1.35);
     const width = Math.max(
       Math.round(this.canvas.clientWidth * pixelRatio),
       1,
@@ -319,7 +314,6 @@ export class SpaceBackground {
     this.isVisible = !document.hidden;
 
     if (this.isVisible && this.frameId === null) {
-      this.renderBudget.reset();
       this.frameId = requestAnimationFrame(this.render);
     }
   };
@@ -328,11 +322,6 @@ export class SpaceBackground {
     this.frameId = null;
 
     if (!this.gl || !this.isVisible) {
-      return;
-    }
-
-    if (!this.renderBudget.shouldRender(frameTime)) {
-      this.frameId = requestAnimationFrame(this.render);
       return;
     }
 

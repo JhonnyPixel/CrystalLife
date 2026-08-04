@@ -36,11 +36,9 @@ import { GemModelFactory } from "./gem-model.js";
 import { ModuleGemGallery } from "./module-gem-gallery.js";
 import { PageLoader } from "./page-loader.js";
 import {
-  initializeMobilePerformanceMode,
-  isIOSWebKitDevice,
-  MOBILE_PERFORMANCE_QUERY,
+  getRenderPixelRatio,
+  MOBILE_VIEWPORT_QUERY,
   observeRenderVisibility,
-  RenderBudget,
   scheduleIdleTask,
 } from "./render-performance.js";
 import { SpaceBackground } from "./space-background.js";
@@ -53,16 +51,6 @@ import "./styles.css";
 const pageLoader = new PageLoader(
   document.querySelector("[data-page-loader]"),
 );
-const useIOSWebGLFallback = isIOSWebKitDevice();
-const useStaticHeroPhoneVisuals = window.matchMedia(
-  MOBILE_PERFORMANCE_QUERY,
-).matches;
-
-initializeMobilePerformanceMode();
-document.documentElement.classList.toggle(
-  "uses-ios-webgl-fallback",
-  useIOSWebGLFallback,
-);
 const iPhoneShellsReady = initializeIPhoneShells();
 
 const spaceBackgroundCanvas = document.querySelector(
@@ -70,11 +58,7 @@ const spaceBackgroundCanvas = document.querySelector(
 );
 
 if (spaceBackgroundCanvas) {
-  if (useIOSWebGLFallback) {
-    spaceBackgroundCanvas.classList.add("is-static");
-  } else {
-    new SpaceBackground(spaceBackgroundCanvas);
-  }
+  new SpaceBackground(spaceBackgroundCanvas);
 }
 
 const showcaseElement = document.querySelector("[data-showcase-story]");
@@ -82,18 +66,14 @@ const heroOrbitElement = document.querySelector("[data-hero-orbit]");
 let heroOrbitPreview;
 
 if (heroOrbitElement) {
-  if (useStaticHeroPhoneVisuals) {
-    heroOrbitElement.classList.add("is-static");
-  } else {
-    try {
-      heroOrbitPreview = new FeatureOrbitPreview(heroOrbitElement);
-    } catch (error) {
-      console.error(
-        "Impossibile inizializzare l'orbita della dashboard.",
-        error,
-      );
-      heroOrbitElement.classList.add("is-fallback");
-    }
+  try {
+    heroOrbitPreview = new FeatureOrbitPreview(heroOrbitElement);
+  } catch (error) {
+    console.error(
+      "Impossibile inizializzare l'orbita della dashboard.",
+      error,
+    );
+    heroOrbitElement.classList.add("is-fallback");
   }
 }
 
@@ -102,31 +82,18 @@ const heroGalleryElements = [
     "[data-hero-gem-gallery], [data-hero-detail-gallery]",
   ),
 ];
-const initializeHeroGemGalleries = async (sequential) => {
-  for (const element of heroGalleryElements) {
+const initializeHeroGemGalleries = () => {
+  heroGalleryElements.forEach((element) => {
     try {
-      const gallery = new HeroGemGallery(element);
-
-      if (sequential) {
-        await gallery.whenReady();
-      }
+      new HeroGemGallery(element);
     } catch (error) {
       console.error("Impossibile inizializzare le gemme della hero.", error);
     }
-  }
+  });
 };
-const useHeroGemSnapshots =
-  useStaticHeroPhoneVisuals && !useIOSWebGLFallback;
-const heroGalleriesReady = useHeroGemSnapshots
-  ? initializeHeroGemGalleries(true)
-  : Promise.resolve();
 let orbitModelsReady = Promise.resolve();
 
-if (!useStaticHeroPhoneVisuals) {
-  scheduleIdleTask(() => {
-    void initializeHeroGemGalleries(false);
-  });
-}
+scheduleIdleTask(initializeHeroGemGalleries);
 
 (() => {
   "use strict";
@@ -136,10 +103,14 @@ if (!useStaticHeroPhoneVisuals) {
   const CAMERA_FOV_DEGREES = 58;
   const INITIAL_CAMERA_HEIGHT = 24;
   const FINAL_CAMERA_HEIGHT = 14;
-  const MOBILE_VIEWPORT_QUERY =
-    "(max-width: 560px), (hover: none) and (pointer: coarse)";
   const MOBILE_ORBIT_SCALE_BOOST = 1.1;
   const MOBILE_ORBIT_OPACITY = 0.16;
+  const MOBILE_ORBIT_FADE = Object.freeze({
+    entranceEnd: 0.6,
+    entranceStart: 0.24,
+    exitEnd: 0.98,
+    exitStart: 0.7,
+  });
   const ORBIT_OPACITY = 0.075;
   const ORBIT_SCREEN_EDGE_RATIO = 0.94;
   const GEM_HINT_DURATION_SECONDS = 1.35;
@@ -157,7 +128,6 @@ if (!useStaticHeroPhoneVisuals) {
     restOpacity: 0.34,
     restScale: 6.2,
   });
-  const PRIORITY_RENDER_DURATION_MS = 140;
   const storyElement = document.querySelector("[data-orbit-story]");
   const canvasElement = document.querySelector("[data-orbit-canvas]");
   const gemStatusElement = document.querySelector("[data-gem-status]");
@@ -182,22 +152,6 @@ if (!useStaticHeroPhoneVisuals) {
   const smoothstep = (start, end, value) => {
     const progress = clamp((value - start) / (end - start));
     return progress * progress * (3 - 2 * progress);
-  };
-
-  const runModelTasksSequentially = async (tasks) => {
-    const results = [];
-
-    for (const task of tasks) {
-      try {
-        results.push({ status: "fulfilled", value: await task.run() });
-      } catch (reason) {
-        results.push({ status: "rejected", reason });
-      }
-
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-    }
-
-    return results;
   };
 
   const createGemBloomTexture = () => {
@@ -253,9 +207,8 @@ if (!useStaticHeroPhoneVisuals) {
   };
 
   class OrbitExperience {
-    constructor(container, { useDetailedModels = true } = {}) {
+    constructor(container) {
       this.container = container;
-      this.useDetailedModels = useDetailedModels;
       this.progress = 0;
       this.introProgress = 0;
       this.elapsedSeconds = 0;
@@ -264,12 +217,6 @@ if (!useStaticHeroPhoneVisuals) {
       this.isInteractive = false;
       this.isIntroVisible = true;
       this.isStoryVisible = false;
-      this.priorityRenderUntil = 0;
-      this.renderBudget = new RenderBudget({
-        desktopPixelRatio: 1.8,
-        mobileFps: 60,
-        mobilePixelRatio: 1.15,
-      });
       this.prefersReducedMotion = window.matchMedia(
         "(prefers-reduced-motion: reduce)",
       ).matches;
@@ -298,20 +245,12 @@ if (!useStaticHeroPhoneVisuals) {
       this.resize();
       this.container.classList.add("is-renderable");
 
-      if (!this.renderBudget.isMobile) {
-        scheduleIdleTask(this.loadModelsOnce);
-      }
+      scheduleIdleTask(this.loadModelsOnce);
       this.frameId = requestAnimationFrame(this.render);
     }
 
     loadModelsOnce = () => {
       if (this.modelLoadPromise) {
-        return this.modelLoadPromise;
-      }
-
-      if (!this.useDetailedModels) {
-        this.modelLoadPromise = Promise.resolve();
-        this.finishLoading(0, "Orbita ottimizzata");
         return this.modelLoadPromise;
       }
 
@@ -339,14 +278,12 @@ if (!useStaticHeroPhoneVisuals) {
       this.camera.up.set(0, 0, -1);
       this.renderer = new WebGLRenderer({
         alpha: true,
-        antialias: !this.renderBudget.isMobile,
-        powerPreference: this.renderBudget.isMobile
-          ? "low-power"
-          : "high-performance",
+        antialias: true,
+        powerPreference: "high-performance",
       });
       this.container.append(this.renderer.domElement);
       this.renderer.setClearColor(0x000000, 0);
-      this.renderer.setPixelRatio(this.renderBudget.getPixelRatio());
+      this.renderer.setPixelRatio(getRenderPixelRatio(1.8));
       this.renderer.toneMapping = AgXToneMapping;
       this.renderer.toneMappingExposure = 1;
       this.renderer.shadowMap.enabled = false;
@@ -412,9 +349,9 @@ if (!useStaticHeroPhoneVisuals) {
           run: () => this.loadGemModel(module),
         })),
       ];
-      const results = this.renderBudget.isMobile
-        ? await runModelTasksSequentially(tasks)
-        : await Promise.allSettled(tasks.map(({ run }) => run()));
+      const results = await Promise.allSettled(
+        tasks.map(({ run }) => run()),
+      );
       const failedTasks = results
         .map((result, index) => ({ result, task: tasks[index] }))
         .filter(({ result }) => result.status === "rejected");
@@ -699,10 +636,6 @@ if (!useStaticHeroPhoneVisuals) {
     setProgress(progress) {
       const nextProgress = clamp(progress);
 
-      if (nextProgress !== this.progress) {
-        this.markPriorityRender();
-      }
-
       this.progress = nextProgress;
       const shouldBeInteractive = this.progress >= INTERACTION_START;
 
@@ -740,20 +673,11 @@ if (!useStaticHeroPhoneVisuals) {
     setIntroProgress(progress) {
       const nextProgress = clamp(progress);
 
-      if (nextProgress !== this.introProgress) {
-        this.markPriorityRender();
-      }
-
       this.introProgress = nextProgress;
       if (this.introProgress > 0.005) {
         this.loadModelsOnce();
       }
       this.requestRender();
-    }
-
-    markPriorityRender() {
-      this.priorityRenderUntil =
-        performance.now() + PRIORITY_RENDER_DURATION_MS;
     }
 
     setIntroVisible(isVisible) {
@@ -781,7 +705,6 @@ if (!useStaticHeroPhoneVisuals) {
     requestRender() {
       if (this.frameId === null && this.isSceneActive()) {
         this.lastFrameTime = performance.now();
-        this.renderBudget.reset();
         this.frameId = requestAnimationFrame(this.render);
       }
     }
@@ -1093,17 +1016,6 @@ if (!useStaticHeroPhoneVisuals) {
         return;
       }
 
-      const isDraggingGem = this.modules.some(
-        ({ isDragging }) => isDragging,
-      );
-      const useActiveRate =
-        isDraggingGem || frameTime < this.priorityRenderUntil;
-
-      if (!this.renderBudget.shouldRender(frameTime, useActiveRate)) {
-        this.frameId = requestAnimationFrame(this.render);
-        return;
-      }
-
       const deltaSeconds = Math.min(
         (frameTime - this.lastFrameTime) / 1000,
         0.05,
@@ -1123,7 +1035,7 @@ if (!useStaticHeroPhoneVisuals) {
       const width = Math.max(this.container.clientWidth, 1);
       const height = Math.max(this.container.clientHeight, 1);
 
-      this.renderer.setPixelRatio(this.renderBudget.getPixelRatio());
+      this.renderer.setPixelRatio(getRenderPixelRatio(1.8));
       this.camera.aspect = width / height;
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(width, height, false);
@@ -1222,7 +1134,6 @@ if (!useStaticHeroPhoneVisuals) {
           this.isVisible = isVisible;
           if (isVisible) {
             this.lastFrameTime = performance.now();
-            this.renderBudget.reset();
             this.requestRender();
           }
         },
@@ -1237,6 +1148,7 @@ if (!useStaticHeroPhoneVisuals) {
       this.isTicking = false;
       this.lastProgress = null;
       this.lastStoryVisibility = null;
+      this.mobileViewport = window.matchMedia(MOBILE_VIEWPORT_QUERY);
 
       this.update();
       window.addEventListener("scroll", this.requestUpdate, { passive: true });
@@ -1254,17 +1166,10 @@ if (!useStaticHeroPhoneVisuals) {
 
     update = () => {
       const rect = this.element.getBoundingClientRect();
-      const progress = clamp(
-        (window.innerHeight - rect.top) /
-          Math.max(this.element.offsetHeight, 1),
-      );
-      const hasEnteredViewport = rect.top < window.innerHeight;
-      const exitVisibility = smoothstep(
-        window.innerHeight * 0.52,
-        window.innerHeight * 0.96,
-        rect.bottom,
-      );
-      const storyVisibility = hasEnteredViewport ? exitVisibility : 0;
+      const { isPresented, progress, storyVisibility } =
+        this.getStoryState(rect);
+
+      this.writeMobileSectionClip(rect);
 
       if (
         progress !== this.lastProgress ||
@@ -1273,12 +1178,82 @@ if (!useStaticHeroPhoneVisuals) {
         this.lastProgress = progress;
         this.lastStoryVisibility = storyVisibility;
         this.experience?.setProgress(progress);
-        this.experience?.setStoryVisible(storyVisibility > 0.72);
+        this.experience?.setStoryVisible(isPresented);
         this.writeStyles(progress, storyVisibility);
       }
 
       this.isTicking = false;
     };
+
+    getStoryState(rect) {
+      const hasEnteredViewport = rect.top < window.innerHeight;
+
+      if (this.mobileViewport.matches) {
+        const isPresented = hasEnteredViewport && rect.bottom > 0;
+        const sectionProgress = clamp(
+          (window.innerHeight - rect.top) /
+            Math.max(rect.height, 1),
+        );
+        const entranceOpacity = smoothstep(
+          MOBILE_ORBIT_FADE.entranceStart,
+          MOBILE_ORBIT_FADE.entranceEnd,
+          sectionProgress,
+        );
+        const exitOpacity =
+          1 -
+          smoothstep(
+            MOBILE_ORBIT_FADE.exitStart,
+            MOBILE_ORBIT_FADE.exitEnd,
+            sectionProgress,
+          );
+
+        return {
+          isPresented,
+          progress: isPresented ? 1 : 0,
+          storyVisibility: isPresented
+            ? entranceOpacity * exitOpacity
+            : 0,
+        };
+      }
+
+      const progress = clamp(
+        (window.innerHeight - rect.top) /
+          Math.max(this.element.offsetHeight, 1),
+      );
+      const exitVisibility = smoothstep(
+        window.innerHeight * 0.52,
+        window.innerHeight * 0.96,
+        rect.bottom,
+      );
+
+      return {
+        isPresented:
+          hasEnteredViewport && exitVisibility > 0.72,
+        progress,
+        storyVisibility: hasEnteredViewport ? exitVisibility : 0,
+      };
+    }
+
+    writeMobileSectionClip(storyBounds) {
+      if (!this.mobileViewport.matches) {
+        return;
+      }
+
+      const clipTop = clamp(
+        storyBounds.top,
+        0,
+        window.innerHeight,
+      );
+      const clipBottom = clamp(
+        window.innerHeight - storyBounds.bottom,
+        0,
+        window.innerHeight,
+      );
+      const style = document.documentElement.style;
+
+      style.setProperty("--orbit-section-clip-top", `${clipTop}px`);
+      style.setProperty("--orbit-section-clip-bottom", `${clipBottom}px`);
+    }
 
     writeStyles(progress, storyVisibility) {
       const cueOpacity = 1 - smoothstep(0.01, 0.1, progress);
@@ -1315,22 +1290,14 @@ if (!useStaticHeroPhoneVisuals) {
   let orbitExperience;
 
   try {
-    orbitExperience = new OrbitExperience(canvasElement, {
-      useDetailedModels: !useIOSWebGLFallback,
-    });
+    orbitExperience = new OrbitExperience(canvasElement);
   } catch (error) {
     console.error("Impossibile inizializzare la scena 3D.", error);
     canvasElement.classList.add("is-fallback");
   }
 
   if (orbitExperience) {
-    const startupDependency = useStaticHeroPhoneVisuals
-      ? heroGalleriesReady
-      : Promise.resolve();
-
-    orbitModelsReady = startupDependency.then(() =>
-      orbitExperience.warmUp(),
-    );
+    orbitModelsReady = orbitExperience.warmUp();
   }
 
   if (showcaseElement) {
@@ -1359,36 +1326,25 @@ if (!useStaticHeroPhoneVisuals) {
       }
     };
 
-    if (useIOSWebGLFallback) {
-      moduleCardElements.forEach((element) => {
-        element.classList.add("uses-static-gem");
-      });
-    } else {
-      scheduleIdleTask(initializeModuleGallery);
-    }
+    scheduleIdleTask(initializeModuleGallery);
   }
 
   if (featureOrbitElement) {
-    if (useIOSWebGLFallback) {
-      featureOrbitElement.classList.add("is-fallback");
-    } else {
-      scheduleIdleTask(() => {
-        try {
-          new FeatureOrbitPreview(featureOrbitElement);
-        } catch (error) {
-          console.error(
+    scheduleIdleTask(() => {
+      try {
+        new FeatureOrbitPreview(featureOrbitElement);
+      } catch (error) {
+        console.error(
           "Impossibile inizializzare l'orbita della funzionalità.",
           error,
         );
-          featureOrbitElement.classList.add("is-fallback");
-        }
-      });
-    }
+        featureOrbitElement.classList.add("is-fallback");
+      }
+    });
   }
 })();
 
 void pageLoader.hideWhenReady([
   iPhoneShellsReady,
-  heroGalleriesReady,
   orbitModelsReady,
 ]);
