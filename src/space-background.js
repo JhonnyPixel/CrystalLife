@@ -8,6 +8,7 @@ const VERTEX_SHADER = `
   }
 `;
 
+
 const FRAGMENT_SHADER = `
   precision highp float;
 
