@@ -1,840 +1,666 @@
 <!doctype html>
 <html lang="it" class="is-page-loading">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="CrystalLife è il sistema personale per trasformare intenzioni, disciplina e crescita in una pratica quotidiana."
-    />
-    <meta name="theme-color" content="#000000" />
-    <title>CrystalLife — Costruisci ciò che diventi</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..900&display=swap"
-      rel="stylesheet"
-    />
-  </head>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Shard è il sistema personale per trasformare intenzioni, disciplina e crescita in una pratica quotidiana." />
+  <meta name="theme-color" content="#000000" />
+  <title>Shard — Costruisci ciò che diventi</title>
 
-  <body>
-    <div
-      class="page-loader"
-      data-page-loader
-      role="status"
-      aria-live="polite"
-      aria-label="Caricamento di CrystalLife"
-    >
-      <div class="page-loader__content">
-        <span class="page-loader__visual" aria-hidden="true">
-          <span class="page-loader__spinner"></span>
-        </span>
-        <strong class="page-loader__brand">
-          <span
-            class="page-loader__brand-crystal liquid-glass-text"
-            data-text="Crystal"
-          >Crystal</span><span class="page-loader__brand-life">Life</span>
-        </strong>
-        <span class="page-loader__label">Preparazione esperienza</span>
-        <span class="page-loader__track" aria-hidden="true">
-          <span></span>
-        </span>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..900&display=swap"
+    rel="stylesheet" />
+</head>
+
+<body>
+  <div class="page-loader" data-page-loader role="status" aria-live="polite" aria-label="Caricamento di Shard">
+    <div class="page-loader__content">
+      <span class="page-loader__visual" aria-hidden="true">
+        <span class="page-loader__spinner"></span>
+      </span>
+      <strong class="page-loader__brand">
+        <span class="page-loader__brand-crystal liquid-glass-text" data-text="Shard">Shard</span>
+      </strong>
+      <span class="page-loader__label">Preparazione esperienza</span>
+      <span class="page-loader__track" aria-hidden="true">
+        <span></span>
+      </span>
+    </div>
+  </div>
+
+  <canvas class="space-background" data-space-background aria-hidden="true"></canvas>
+
+  <main>
+    <div class="orbit-canvas" data-orbit-canvas role="application" tabindex="0" aria-busy="true" aria-disabled="true"
+      aria-label="Sistema orbitale interattivo. In vista verticale, trascina una gemma lungo la sua orbita e rilasciala per lanciarla. Un clic la ferma e apre la sua scheda.">
+      <div class="orbit-loader" data-orbit-loader role="status" aria-live="polite">
+        <span class="orbit-loader__mark" aria-hidden="true"></span>
+        <span data-orbit-loader-label>Preparazione dell'orbita</span>
       </div>
     </div>
+    <div class="showcase-transition-mask" aria-hidden="true"></div>
 
-    <canvas
-      class="space-background"
-      data-space-background
-      aria-hidden="true"
-    ></canvas>
+    <section class="showcase-story" data-showcase-story aria-labelledby="showcase-title">
+      <div class="showcase-story__stage">
+        <div class="showcase-story__glow" aria-hidden="true"></div>
 
-    <main>
-      <div
-        class="orbit-canvas"
-        data-orbit-canvas
-        role="application"
-        tabindex="0"
-        aria-busy="true"
-        aria-disabled="true"
-        aria-label="Sistema orbitale interattivo. In vista verticale, trascina una gemma lungo la sua orbita e rilasciala per lanciarla. Un clic la ferma e apre la sua scheda."
-      >
-        <div
-          class="orbit-loader"
-          data-orbit-loader
-          role="status"
-          aria-live="polite"
-        >
-          <span class="orbit-loader__mark" aria-hidden="true"></span>
-          <span data-orbit-loader-label>Preparazione dell'orbita</span>
-        </div>
-      </div>
-      <div class="showcase-transition-mask" aria-hidden="true"></div>
-
-      <section
-        class="showcase-story"
-        data-showcase-story
-        aria-labelledby="showcase-title"
-      >
-        <div class="showcase-story__stage">
-          <div class="showcase-story__glow" aria-hidden="true"></div>
-
-          <div class="showcase-story__layout section-shell">
-            <div class="showcase-copy">
-              <h1 class="showcase-copy__headline" id="showcase-title">
-                Costruisci la vita<br />
-                <span
-                  class="liquid-glass-text"
-                  data-text="che vuoi vivere."
-                >che vuoi vivere.</span>
-              </h1>
-              <p class="showcase-copy__description">
-                CrystalLife riunisce mente, corpo, disciplina, relazioni e
-                crescita in un solo sistema: pianifica le tue giornate,
-                proteggi il focus e rendi visibile ogni progresso.
-              </p>
-              <div class="showcase-copy__actions">
-                <a class="showcase-action showcase-action--primary" href="#inizio">
-                  Entra nell'orbita
-                </a>
-                <a class="showcase-action" href="#funzionalita">
-                  Scopri le funzioni
-                </a>
-              </div>
+        <div class="showcase-story__layout section-shell">
+          <div class="showcase-copy">
+            <h1 class="showcase-copy__headline" id="showcase-title">
+              Costruisci la tua vita<br />
+              <span class="liquid-glass-text" data-text="con Shard.">con Shard.</span>
+            </h1>
+            <p class="showcase-copy__description">
+              Shard riunisce mente, corpo, disciplina, relazioni e
+              crescita in un solo sistema: pianifica le tue giornate,
+              proteggi il focus e rendi visibile ogni progresso.
+            </p>
+            <div class="showcase-copy__actions">
+              <a class="showcase-action showcase-action--primary" href="#inizio">
+                Entra nell'orbita
+              </a>
+              <a class="showcase-action" href="#funzionalita">
+                Scopri le funzioni
+              </a>
             </div>
 
-            <div
-              class="showcase-visual"
-              role="img"
-              aria-label="Tre schermate di CrystalLife: percorso, dashboard orbitale e dettaglio della gemma"
-            >
-              <div class="phone-cluster" aria-hidden="true">
-                <article
-                  class="app-phone app-phone--left"
-                  data-iphone-view="left"
-                >
-                  <div class="app-phone__hardware">
-                    <div class="app-phone__screen app-screen app-screen--path">
-                      <span class="app-phone__speaker"></span>
-                      <div class="phone-status"><span>19:51</span><i></i></div>
-                      <header class="phone-app-bar">
-                        <span class="phone-avatar">CL</span>
-                        <strong>Oggi</strong>
-                        <i class="phone-settings"></i>
-                      </header>
-                      <div class="phone-content phone-content--path">
-                        <h2>Il tuo percorso</h2>
-                        <p class="phone-path-description">
-                          Mantieni l'equilibrio nelle tue aree di sviluppo.
-                        </p>
-                        <div class="phone-module-list" data-hero-gem-gallery>
-                          <div class="phone-path-card phone-path-card--happiness">
-                            <div
-                              class="phone-module-gem"
-                              data-hero-gem-model="mind"
-                              data-gem-color="#ef4444"
-                            ></div>
-                            <span><strong>Mente</strong><small>Ottimale</small></span>
-                            <em>›</em>
+            <div class="hero-email-capture" id="waitlist-form">
+              <div class="hero-email-header">
+                <span class="hero-email-badge">Sii tra i primi a provare Shard</span>
+                <p class="hero-email-subtext">Lascia la tua email per ricevere la versione di prova gratuita al lancio dell'app.</p>
+              </div>
+              <form class="email-form" data-email-form>
+                <div class="email-input-group">
+                  <input type="email" class="email-input" data-email-input placeholder="Inserisci la tua email..." required autocomplete="email" />
+                  <button type="submit" class="email-submit-btn">
+                    <span>Provalo gratis</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </button>
+                </div>
+                <p class="email-status-msg" data-email-status aria-live="polite"></p>
+              </form>
+            </div>
+          </div>
+
+          <div class="showcase-visual" role="img"
+            aria-label="Tre schermate di Shard: percorso, dashboard orbitale e dettaglio della gemma">
+            <div class="phone-cluster" aria-hidden="true">
+              <article class="app-phone app-phone--left" data-iphone-view="left">
+                <div class="app-phone__hardware">
+                  <div class="app-phone__screen app-screen app-screen--path">
+                    <span class="app-phone__speaker"></span>
+                    <div class="phone-status"><span>19:51</span><i></i></div>
+                    <header class="phone-app-bar">
+                      <span class="phone-avatar">CL</span>
+                      <strong>Oggi</strong>
+                      <i class="phone-settings"></i>
+                    </header>
+                    <div class="phone-content phone-content--path">
+                      <h2>Il tuo percorso</h2>
+                      <p class="phone-path-description">
+                        Mantieni l'equilibrio nelle tue aree di sviluppo.
+                      </p>
+                      <div class="phone-module-list" data-hero-gem-gallery>
+                        <div class="phone-path-card phone-path-card--happiness">
+                          <div class="phone-module-gem" data-hero-gem-model="mind" data-gem-color="#ef4444"></div>
+                          <span><strong>Mente</strong><small>Ottimale</small></span>
+                          <em>›</em>
+                        </div>
+                        <div class="phone-path-card phone-path-card--health">
+                          <div class="phone-module-gem" data-hero-gem-model="body" data-gem-color="#b6f34a"></div>
+                          <span><strong>Corpo</strong><small>Stabile</small></span>
+                          <em>›</em>
+                        </div>
+                        <div class="phone-path-card phone-path-card--purpose">
+                          <div class="phone-module-gem" data-hero-gem-model="growth" data-gem-color="#3b82f6"></div>
+                          <span><strong>Crescita</strong><small>Focus richiesto</small></span>
+                          <em>›</em>
+                        </div>
+                        <div class="phone-path-card phone-path-card--virtue">
+                          <div class="phone-module-gem" data-hero-gem-model="discipline" data-gem-color="#f97316"></div>
+                          <span><strong>Disciplina</strong><small>Stabile</small></span>
+                          <em>›</em>
+                        </div>
+                        <div class="phone-path-card phone-path-card--relationships">
+                          <div class="phone-module-gem" data-hero-gem-model="relationships" data-gem-color="#ec4899">
                           </div>
-                          <div class="phone-path-card phone-path-card--health">
-                            <div
-                              class="phone-module-gem"
-                              data-hero-gem-model="body"
-                              data-gem-color="#b6f34a"
-                            ></div>
-                            <span><strong>Corpo</strong><small>Stabile</small></span>
-                            <em>›</em>
-                          </div>
-                          <div class="phone-path-card phone-path-card--purpose">
-                            <div
-                              class="phone-module-gem"
-                              data-hero-gem-model="growth"
-                              data-gem-color="#3b82f6"
-                            ></div>
-                            <span><strong>Crescita</strong><small>Focus richiesto</small></span>
-                            <em>›</em>
-                          </div>
-                          <div class="phone-path-card phone-path-card--virtue">
-                            <div
-                              class="phone-module-gem"
-                              data-hero-gem-model="discipline"
-                              data-gem-color="#f97316"
-                            ></div>
-                            <span><strong>Disciplina</strong><small>Stabile</small></span>
-                            <em>›</em>
-                          </div>
-                          <div class="phone-path-card phone-path-card--relationships">
-                            <div
-                              class="phone-module-gem"
-                              data-hero-gem-model="relationships"
-                              data-gem-color="#ec4899"
-                            ></div>
-                            <span><strong>Relazioni</strong><small>Focus richiesto</small></span>
-                            <em>›</em>
-                          </div>
+                          <span><strong>Relazioni</strong><small>Focus richiesto</small></span>
+                          <em>›</em>
                         </div>
                       </div>
-                      <nav class="phone-nav">
-                        <i></i><i class="is-active"></i><i></i><i></i>
-                      </nav>
                     </div>
+                    <nav class="phone-nav">
+                      <i></i><i class="is-active"></i><i></i><i></i>
+                    </nav>
                   </div>
-                </article>
+                </div>
+              </article>
 
-                <article
-                  class="app-phone app-phone--center"
-                  data-iphone-view="front"
-                >
-                  <div class="app-phone__hardware">
-                    <div class="app-phone__screen app-screen app-screen--today">
-                      <span class="app-phone__speaker"></span>
-                      <div class="phone-status"><span>19:51</span><i></i></div>
-                      <header class="phone-app-bar">
-                        <span class="phone-avatar">CL</span>
-                        <span><strong>Oggi</strong><small>Buongiorno, Marco</small></span>
-                        <i class="phone-settings"></i>
-                      </header>
-                      <div class="phone-content phone-content--today">
-                        <p class="phone-streak"><i></i>12 giorni di continuità</p>
-                        <section class="phone-core-card">
-                          <p>Livello 07</p>
-                          <h2>Costruttore</h2>
-                          <small>Prossima evoluzione tra 180 XP</small>
-                          <div
-                            class="phone-orbit-map hero-orbit-preview"
-                            data-hero-orbit
-                          ></div>
-                          <strong class="phone-core-value">42%</strong>
-                          <span class="phone-core-label">Core</span>
-                          <div class="phone-progress"><i></i></div>
-                        </section>
-                        <div class="phone-focus-card">
-                          <span class="phone-focus-card__icon">
-                            <svg
-                              class="phone-focus-card__shield"
-                              viewBox="0 0 24 24"
-                              aria-hidden="true"
-                            >
-                              <path d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4Z" />
-                            </svg>
-                          </span>
-                          <span class="phone-focus-card__copy">
-                            <small>Scudo</small>
-                            <strong>concentrazione attivo</strong>
-                            <em>Distrazioni bloccate per le prossime 2 ore</em>
-                          </span>
-                          <b aria-hidden="true">›</b>
-                        </div>
-                        <div class="phone-today-heading">
-                          <strong>Il percorso di oggi</strong><span>4 attività</span>
-                        </div>
-                        <div class="phone-timeline-row">
-                          <time>10:30</time><i></i>
-                          <span><strong>Strength Training</strong><small>Corpo · In corso</small></span>
-                        </div>
-                      </div>
-                      <nav class="phone-nav">
-                        <i class="is-active"></i><i></i><i></i><i></i>
-                      </nav>
-                    </div>
-                  </div>
-                </article>
-
-                <article
-                  class="app-phone app-phone--right"
-                  data-iphone-view="right"
-                >
-                  <div class="app-phone__hardware">
-                    <div class="app-phone__screen app-screen app-screen--detail">
-                      <span class="app-phone__speaker"></span>
-                      <div class="phone-status"><span>19:51</span><i></i></div>
-                      <header class="phone-app-bar">
-                        <span class="phone-avatar">CL</span>
-                        <span><strong>Oggi</strong><small>Buongiorno, Marco</small></span>
-                        <i class="phone-settings"></i>
-                      </header>
-                      <div
-                        class="phone-content phone-content--detail"
-                        data-hero-detail-gallery
-                      >
-                        <p class="phone-kicker">Livello 07</p>
-                        <h2>Gemma del<br />Corpo</h2>
-                        <small>Stadio: Cristallizzazione</small>
-                        <span class="phone-detail-next">Prossima evoluzione tra 180 XP</span>
-                        <div
-                          class="hero-detail-gem-3d"
-                          data-hero-gem-model="body"
-                          data-gem-color="#b6f34a"
-                        ></div>
-                        <strong class="phone-detail-value">68%</strong>
+              <article class="app-phone app-phone--center" data-iphone-view="front">
+                <div class="app-phone__hardware">
+                  <div class="app-phone__screen app-screen app-screen--today">
+                    <span class="app-phone__speaker"></span>
+                    <div class="phone-status"><span>19:51</span><i></i></div>
+                    <header class="phone-app-bar">
+                      <span class="phone-avatar">CL</span>
+                      <span><strong>Oggi</strong><small>Buongiorno, Marco</small></span>
+                      <i class="phone-settings"></i>
+                    </header>
+                    <div class="phone-content phone-content--today">
+                      <p class="phone-streak"><i></i>12 giorni di continuità</p>
+                      <section class="phone-core-card">
+                        <p>Livello 07</p>
+                        <h2>Costruttore</h2>
+                        <small>Prossima evoluzione tra 180 XP</small>
+                        <div class="phone-orbit-map hero-orbit-preview" data-hero-orbit></div>
+                        <strong class="phone-core-value">42%</strong>
                         <span class="phone-core-label">Core</span>
                         <div class="phone-progress"><i></i></div>
-                        <div class="phone-focus-card">
-                          <span class="phone-focus-card__icon">
-                            <svg
-                              class="phone-focus-card__shield"
-                              viewBox="0 0 24 24"
-                              aria-hidden="true"
-                            >
-                              <path d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4Z" />
-                            </svg>
-                          </span>
-                          <span class="phone-focus-card__copy">
-                            <small>Scudo</small>
-                            <strong>concentrazione attivo</strong>
-                            <em>Distrazioni bloccate per le prossime 2 ore</em>
-                          </span>
-                          <b aria-hidden="true">›</b>
-                        </div>
-                        <h3>Sfide correnti</h3>
-                        <div class="phone-challenge"><span>Sfida 1</span><strong>Doccia fredda · 3 min</strong></div>
-                        <div class="phone-challenge"><span>Sfida 2</span><strong>Digiuno intermittente</strong></div>
+                      </section>
+                      <div class="phone-focus-card">
+                        <span class="phone-focus-card__icon">
+                          <svg class="phone-focus-card__shield" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4Z" />
+                          </svg>
+                        </span>
+                        <span class="phone-focus-card__copy">
+                          <small>Scudo</small>
+                          <strong>concentrazione attivo</strong>
+                          <em>Distrazioni bloccate per le prossime 2 ore</em>
+                        </span>
+                        <b aria-hidden="true">›</b>
                       </div>
-                      <nav class="phone-nav">
-                        <i></i><i class="is-active"></i><i></i><i></i>
-                      </nav>
+                      <div class="phone-today-heading">
+                        <strong>Il percorso di oggi</strong><span>4 attività</span>
+                      </div>
+                      <div class="phone-timeline-row">
+                        <time>10:30</time><i></i>
+                        <span><strong>Strength Training</strong><small>Corpo · In corso</small></span>
+                      </div>
                     </div>
+                    <nav class="phone-nav">
+                      <i class="is-active"></i><i></i><i></i><i></i>
+                    </nav>
                   </div>
-                </article>
-              </div>
+                </div>
+              </article>
+
+              <article class="app-phone app-phone--right" data-iphone-view="right">
+                <div class="app-phone__hardware">
+                  <div class="app-phone__screen app-screen app-screen--detail">
+                    <span class="app-phone__speaker"></span>
+                    <div class="phone-status"><span>19:51</span><i></i></div>
+                    <header class="phone-app-bar">
+                      <span class="phone-avatar">CL</span>
+                      <span><strong>Oggi</strong><small>Buongiorno, Marco</small></span>
+                      <i class="phone-settings"></i>
+                    </header>
+                    <div class="phone-content phone-content--detail" data-hero-detail-gallery>
+                      <p class="phone-kicker">Livello 07</p>
+                      <h2>Gemma del<br />Corpo</h2>
+                      <small>Stadio: Cristallizzazione</small>
+                      <span class="phone-detail-next">Prossima evoluzione tra 180 XP</span>
+                      <div class="hero-detail-gem-3d" data-hero-gem-model="body" data-gem-color="#b6f34a"></div>
+                      <strong class="phone-detail-value">68%</strong>
+                      <span class="phone-core-label">Core</span>
+                      <div class="phone-progress"><i></i></div>
+                      <div class="phone-focus-card">
+                        <span class="phone-focus-card__icon">
+                          <svg class="phone-focus-card__shield" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4Z" />
+                          </svg>
+                        </span>
+                        <span class="phone-focus-card__copy">
+                          <small>Scudo</small>
+                          <strong>concentrazione attivo</strong>
+                          <em>Distrazioni bloccate per le prossime 2 ore</em>
+                        </span>
+                        <b aria-hidden="true">›</b>
+                      </div>
+                      <h3>Sfide correnti</h3>
+                      <div class="phone-challenge"><span>Sfida 1</span><strong>Doccia fredda · 3 min</strong></div>
+                      <div class="phone-challenge"><span>Sfida 2</span><strong>Digiuno intermittente</strong></div>
+                    </div>
+                    <nav class="phone-nav">
+                      <i></i><i class="is-active"></i><i></i><i></i>
+                    </nav>
+                  </div>
+                </div>
+              </article>
             </div>
           </div>
-
-          <div class="showcase-scroll-cue" aria-hidden="true">
-            <span>Scorri per entrare nel tuo sistema</span>
-            <i></i>
-          </div>
         </div>
-      </section>
 
-      <section
-        class="orbit-story"
-        id="inizio"
-        data-orbit-story
-        aria-label="Sistema orbitale interattivo"
-      >
-        <div class="orbit-story__stage">
-          <p class="sr-only" data-gem-status aria-live="polite"></p>
+        <div class="showcase-scroll-cue" aria-hidden="true">
+          <span>Scorri per entrare nel tuo sistema</span>
+          <i></i>
+        </div>
+      </div>
+    </section>
 
-          <div class="scroll-cue" aria-hidden="true">
-            <span>Continua ad avvicinarti</span>
-            <i></i>
+    <section class="orbit-story" id="inizio" data-orbit-story aria-label="Sistema orbitale interattivo">
+      <div class="orbit-story__stage">
+        <p class="sr-only" data-gem-status aria-live="polite"></p>
+
+        <div class="scroll-cue" aria-hidden="true">
+          <span>Continua ad avvicinarti</span>
+          <i></i>
+        </div>
+
+        <div class="gem-controls" aria-hidden="true">
+          <span class="gem-controls__signal"></span>
+          <span class="gem-controls__copy">
+            <strong>Interagisci con l'orbita</strong>
+            <small>Trascina una gemma · Clicca per scoprirla</small>
+          </span>
+        </div>
+
+        <aside class="gem-info-card" data-gem-info aria-label="Informazioni gemma" hidden>
+          <button class="gem-info-card__close" type="button" data-gem-close
+            aria-label="Chiudi la scheda e rimetti la gemma in orbita">
+            ×
+          </button>
+          <div class="gem-info-card__heading">
+            <span class="gem-info-card__accent" data-gem-accent></span>
+            <div>
+              <p class="gem-info-card__eyebrow">Modulo in pausa</p>
+              <h3 data-gem-name></h3>
+            </div>
           </div>
-
-          <div class="gem-controls" aria-hidden="true">
-            <span class="gem-controls__signal"></span>
-            <span class="gem-controls__copy">
-              <strong>Interagisci con l'orbita</strong>
-              <small>Trascina una gemma · Clicca per scoprirla</small>
-            </span>
+          <p class="gem-info-card__description" data-gem-description></p>
+          <div class="gem-info-card__meta">
+            <span>Orbita</span>
+            <strong data-gem-orbit></strong>
           </div>
+        </aside>
 
-          <aside
-            class="gem-info-card"
-            data-gem-info
-            aria-label="Informazioni gemma"
-            hidden
-          >
-            <button
-              class="gem-info-card__close"
-              type="button"
-              data-gem-close
-              aria-label="Chiudi la scheda e rimetti la gemma in orbita"
-            >
-              ×
+        <div class="continue-cue" aria-hidden="true">
+          <i></i>
+          <i></i>
+        </div>
+      </div>
+    </section>
+
+    <section class="intro section-shell">
+      <p class="section-label">Il principio</p>
+      <div class="intro__grid">
+        <h2>Tutto parte<br />da oggi.</h2>
+        <div class="intro__copy">
+          <p>
+            Shard riunisce mente, corpo, disciplina, relazioni e
+            crescita in un solo sistema. Meno rumore. Più intenzione.
+          </p>
+          <p>
+            Non inseguire una versione ideale di te. Costruiscila, una scelta
+            alla volta.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="modules section-shell" id="moduli" aria-labelledby="modules-title">
+      <div class="section-heading">
+        <div>
+          <p class="section-label">Il tuo ecosistema</p>
+          <h2 id="modules-title">Ogni parte trova il suo posto.</h2>
+        </div>
+        <p>
+          Cinque dimensioni orbitano attorno a un centro: la persona che
+          scegli di essere.
+        </p>
+      </div>
+
+      <div class="module-grid">
+        <article class="module-card module-card--featured" data-module-card data-gem-model="mind">
+          <span class="module-card__number">01</span>
+          <div class="module-card__content">
+            <span class="module-card__orb module-card__orb--mind"></span>
+            <h3>Mente</h3>
+            <p>Journaling, chiarezza e riflessione stoica.</p>
+          </div>
+        </article>
+        <article class="module-card" data-module-card data-gem-model="body">
+          <span class="module-card__number">02</span>
+          <div class="module-card__content">
+            <span class="module-card__orb module-card__orb--lime"></span>
+            <h3>Corpo</h3>
+            <p>Energia, allenamento e recupero consapevole.</p>
+          </div>
+        </article>
+        <article class="module-card" data-module-card data-gem-model="discipline">
+          <span class="module-card__number">03</span>
+          <div class="module-card__content">
+            <span class="module-card__orb module-card__orb--discipline"></span>
+            <h3>Disciplina</h3>
+            <p>Blocca il rumore. Mantieni le promesse.</p>
+          </div>
+        </article>
+        <article class="module-card" data-module-card data-gem-model="relationships">
+          <span class="module-card__number">04</span>
+          <div class="module-card__content">
+            <span class="module-card__orb module-card__orb--pink"></span>
+            <h3>Relazioni</h3>
+            <p>Presenza reale per le persone che contano.</p>
+          </div>
+        </article>
+        <article class="module-card" data-module-card data-gem-model="growth">
+          <span class="module-card__number">05</span>
+          <div class="module-card__content">
+            <span class="module-card__orb module-card__orb--blue"></span>
+            <h3>Crescita</h3>
+            <p>Obiettivi leggibili. Progresso che resta.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="path section-shell" id="funzionalita" aria-labelledby="path-title">
+      <div class="section-heading">
+        <div>
+          <p class="section-label">Il percorso</p>
+          <h2 id="path-title">Sette fasi.<br />Una direzione.</h2>
+        </div>
+        <p>
+          Ogni fase attiva uno strumento concreto. Vedi cosa fai, quando lo
+          fai e come stai cambiando.
+        </p>
+      </div>
+
+      <ol class="feature-journey">
+        <li class="feature-step" id="fase-discovery">
+          <div class="feature-step__copy">
+            <p class="feature-step__label">
+              <span>01</span> Discovery &amp; significato
+            </p>
+            <h3>Scopri cosa ti accende davvero.</h3>
+            <p>
+              Un percorso guidato porta alla luce valori, interessi e
+              attività compatibili con la persona che vuoi costruire.
+            </p>
+            <ul>
+              <li>Valutazione iniziale delle aree della vita</li>
+              <li>Compatibilità e significato di ogni attività</li>
+            </ul>
+            <button type="button" class="feature-cta-btn" data-trigger-waitlist>
+              <span>Richiedi prova gratuita</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
             </button>
-            <div class="gem-info-card__heading">
-              <span class="gem-info-card__accent" data-gem-accent></span>
-              <div>
-                <p class="gem-info-card__eyebrow">Modulo in pausa</p>
-                <h3 data-gem-name></h3>
-              </div>
-            </div>
-            <p class="gem-info-card__description" data-gem-description></p>
-            <div class="gem-info-card__meta">
-              <span>Orbita</span>
-              <strong data-gem-orbit></strong>
-            </div>
-          </aside>
-
-          <div class="continue-cue" aria-hidden="true">
-            <i></i>
-            <i></i>
           </div>
-        </div>
-      </section>
 
-      <section class="intro section-shell">
-        <p class="section-label">Il principio</p>
-        <div class="intro__grid">
-          <h2>Tutto parte<br />da oggi.</h2>
-          <div class="intro__copy">
-            <p>
-              CrystalLife riunisce mente, corpo, disciplina, relazioni e
-              crescita in un solo sistema. Meno rumore. Più intenzione.
+          <div class="feature-step__visual" role="img" aria-label="Anteprima della scoperta guidata delle attività">
+            <div class="feature-phone-stage">
+              <div class="feature-phone-glow" aria-hidden="true"></div>
+              <article class="app-phone app-phone--feature" data-iphone-view="front">
+                <div class="app-phone__hardware">
+                  <div class="app-phone__screen app-screen">
+                    <img src="/iphone/placeholder-screen.png" alt="Schermata Discovery" class="feature-phone__screen-img" loading="lazy" />
+                  </div>
+                </div>
+              </article>
+              <div class="feature-phone-fade" aria-hidden="true"></div>
+            </div>
+          </div>
+        </li>
+
+        <li class="feature-step" id="fase-moduli">
+          <div class="feature-step__copy">
+            <p class="feature-step__label">
+              <span>02</span> Moduli della vita
             </p>
+            <h3>Trasforma la vita in un sistema leggibile.</h3>
             <p>
-              Non inseguire una versione ideale di te. Costruiscila, una scelta
-              alla volta.
+              Ogni attività trova casa in un modulo. Capisci subito cosa è
+              forte, cosa stai trascurando e dove agire.
             </p>
+            <ul>
+              <li>Mente, Corpo, Disciplina, Relazioni e Crescita</li>
+              <li>Stato e pratiche sempre collegate al loro modulo</li>
+            </ul>
+            <button type="button" class="feature-cta-btn" data-trigger-waitlist>
+              <span>Richiedi prova gratuita</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+            </button>
           </div>
-        </div>
-      </section>
 
-      <section
-        class="modules section-shell"
-        id="moduli"
-        aria-labelledby="modules-title"
-      >
-        <div class="section-heading">
-          <div>
-            <p class="section-label">Il tuo ecosistema</p>
-            <h2 id="modules-title">Ogni parte trova il suo posto.</h2>
+          <div class="feature-step__visual" role="img" aria-label="Anteprima dei moduli della vita">
+            <div class="feature-phone-stage">
+              <div class="feature-phone-glow" aria-hidden="true"></div>
+              <article class="app-phone app-phone--feature" data-iphone-view="front">
+                <div class="app-phone__hardware">
+                  <div class="app-phone__screen app-screen">
+                    <img src="/iphone/placeholder-screen.png" alt="Schermata Moduli" class="feature-phone__screen-img" loading="lazy" />
+                  </div>
+                </div>
+              </article>
+              <div class="feature-phone-fade" aria-hidden="true"></div>
+            </div>
           </div>
-          <p>
-            Cinque dimensioni orbitano attorno a un centro: la persona che
-            scegli di essere.
-          </p>
-        </div>
+        </li>
 
-        <div class="module-grid">
-          <article
-            class="module-card module-card--featured"
-            data-module-card
-            data-gem-model="mind"
-          >
-            <span class="module-card__number">01</span>
-            <div class="module-card__content">
-              <span class="module-card__orb module-card__orb--mind"></span>
-              <h3>Mente</h3>
-              <p>Journaling, chiarezza e riflessione stoica.</p>
-            </div>
-          </article>
-          <article
-            class="module-card"
-            data-module-card
-            data-gem-model="body"
-          >
-            <span class="module-card__number">02</span>
-            <div class="module-card__content">
-              <span class="module-card__orb module-card__orb--lime"></span>
-              <h3>Corpo</h3>
-              <p>Energia, allenamento e recupero consapevole.</p>
-            </div>
-          </article>
-          <article
-            class="module-card"
-            data-module-card
-            data-gem-model="discipline"
-          >
-            <span class="module-card__number">03</span>
-            <div class="module-card__content">
-              <span
-                class="module-card__orb module-card__orb--discipline"
-              ></span>
-              <h3>Disciplina</h3>
-              <p>Blocca il rumore. Mantieni le promesse.</p>
-            </div>
-          </article>
-          <article
-            class="module-card"
-            data-module-card
-            data-gem-model="relationships"
-          >
-            <span class="module-card__number">04</span>
-            <div class="module-card__content">
-              <span class="module-card__orb module-card__orb--pink"></span>
-              <h3>Relazioni</h3>
-              <p>Presenza reale per le persone che contano.</p>
-            </div>
-          </article>
-          <article
-            class="module-card"
-            data-module-card
-            data-gem-model="growth"
-          >
-            <span class="module-card__number">05</span>
-            <div class="module-card__content">
-              <span class="module-card__orb module-card__orb--blue"></span>
-              <h3>Crescita</h3>
-              <p>Obiettivi leggibili. Progresso che resta.</p>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section
-        class="path section-shell"
-        id="funzionalita"
-        aria-labelledby="path-title"
-      >
-        <div class="section-heading">
-          <div>
-            <p class="section-label">Il percorso</p>
-            <h2 id="path-title">Sette fasi.<br />Una direzione.</h2>
+        <li class="feature-step" id="fase-journaling">
+          <div class="feature-step__copy">
+            <p class="feature-step__label">
+              <span>03</span> Journaling &amp; chiarezza
+            </p>
+            <h3>Metti ordine prima di reagire.</h3>
+            <p>
+              Prompt brevi trasformano pensieri sparsi in una traccia
+              concreta. Rileggi pattern, paure e progressi senza rumore.
+            </p>
+            <ul>
+              <li>Riflessione del mattino e diario della sera</li>
+              <li>Note collegate a moduli, attività e giornate</li>
+            </ul>
+            <button type="button" class="feature-cta-btn" data-trigger-waitlist>
+              <span>Richiedi prova gratuita</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+            </button>
           </div>
-          <p>
-            Ogni fase attiva uno strumento concreto. Vedi cosa fai, quando lo
-            fai e come stai cambiando.
-          </p>
-        </div>
 
-        <ol class="feature-journey">
-          <li class="feature-step" id="fase-discovery">
-            <div class="feature-step__copy">
-              <p class="feature-step__label">
-                <span>01</span> Discovery &amp; significato
-              </p>
-              <h3>Scopri cosa ti accende davvero.</h3>
-              <p>
-                Un percorso guidato porta alla luce valori, interessi e
-                attività compatibili con la persona che vuoi costruire.
-              </p>
-              <ul>
-                <li>Valutazione iniziale delle aree della vita</li>
-                <li>Compatibilità e significato di ogni attività</li>
-              </ul>
-            </div>
-
-            <div
-              class="feature-step__visual"
-              role="img"
-              aria-label="Anteprima della scoperta guidata delle attività"
-            >
-              <div class="app-preview app-preview--discovery" aria-hidden="true">
-                <div class="app-preview__bar">
-                  <i></i>
-                  <strong>Scoperta</strong>
-                  <span>3 / 8</span>
-                </div>
-                <div class="mini-progress"><i></i></div>
-                <p class="preview-kicker">Segui l’istinto</p>
-                <h4>Quando perdi la percezione del tempo?</h4>
-                <div class="choice-grid">
-                  <span class="is-selected">Creare qualcosa</span>
-                  <span>Allenarmi o competere</span>
-                  <span>Imparare e capire</span>
-                  <span>Aiutare qualcuno</span>
-                </div>
-                <div class="insight-card">
-                  <span>Segnale iniziale</span>
-                  Potresti trovare significato nelle attività che combinano
-                  curiosità e creazione.
-                </div>
-              </div>
-            </div>
-          </li>
-
-          <li class="feature-step" id="fase-moduli">
-            <div class="feature-step__copy">
-              <p class="feature-step__label">
-                <span>02</span> Moduli della vita
-              </p>
-              <h3>Trasforma la vita in un sistema leggibile.</h3>
-              <p>
-                Ogni attività trova casa in un modulo. Capisci subito cosa è
-                forte, cosa stai trascurando e dove agire.
-              </p>
-              <ul>
-                <li>Mente, Corpo, Disciplina, Relazioni e Crescita</li>
-                <li>Stato e pratiche sempre collegate al loro modulo</li>
-              </ul>
-            </div>
-
-            <div
-              class="feature-step__visual"
-              role="img"
-              aria-label="Anteprima dei moduli della vita"
-            >
-              <div class="app-preview app-preview--modules" aria-hidden="true">
-                <div class="app-preview__bar">
-                  <i></i>
-                  <strong>Il tuo percorso</strong>
-                  <span>Oggi</span>
-                </div>
-                <p class="preview-kicker">Il tuo sistema</p>
-                <h4>Ogni parte ha un posto.</h4>
-                <div class="module-preview-list">
-                  <div>
-                    <i class="module-dot module-dot--mind"></i>
-                    <span>
-                      <strong>Mente</strong><small>2 pratiche attive</small>
-                    </span>
-                    <em>In equilibrio</em>
-                  </div>
-                  <div>
-                    <i class="module-dot module-dot--body"></i>
-                    <span>
-                      <strong>Corpo</strong><small>3 pratiche attive</small>
-                    </span>
-                    <em>In crescita</em>
-                  </div>
-                  <div>
-                    <i class="module-dot module-dot--discipline"></i>
-                    <span>
-                      <strong>Disciplina</strong><small>1 sfida aperta</small>
-                    </span>
-                    <em>Da nutrire</em>
+          <div class="feature-step__visual" role="img" aria-label="Anteprima del diario guidato">
+            <div class="feature-phone-stage">
+              <div class="feature-phone-glow" aria-hidden="true"></div>
+              <article class="app-phone app-phone--feature" data-iphone-view="front">
+                <div class="app-phone__hardware">
+                  <div class="app-phone__screen app-screen">
+                    <img src="/iphone/placeholder-screen.png" alt="Schermata Journaling" class="feature-phone__screen-img" loading="lazy" />
                   </div>
                 </div>
-              </div>
+              </article>
+              <div class="feature-phone-fade" aria-hidden="true"></div>
             </div>
-          </li>
+          </div>
+        </li>
 
-          <li class="feature-step" id="fase-journaling">
-            <div class="feature-step__copy">
-              <p class="feature-step__label">
-                <span>03</span> Journaling &amp; chiarezza
-              </p>
-              <h3>Metti ordine prima di reagire.</h3>
-              <p>
-                Prompt brevi trasformano pensieri sparsi in una traccia
-                concreta. Rileggi pattern, paure e progressi senza rumore.
-              </p>
-              <ul>
-                <li>Riflessione del mattino e diario della sera</li>
-                <li>Note collegate a moduli, attività e giornate</li>
-              </ul>
-            </div>
+        <li class="feature-step" id="fase-gamification">
+          <div class="feature-step__copy">
+            <p class="feature-step__label">
+              <span>04</span> Gamification
+            </p>
+            <h3>Rendi visibile ogni passo.</h3>
+            <p>
+              La gemma evolve con te. XP, livelli e continuità danno forma al
+              progresso senza trasformarlo in pressione.
+            </p>
+            <ul>
+              <li>Core personale, livelli e prossima evoluzione</li>
+              <li>Streak e ricompense per la costanza reale</li>
+            </ul>
+            <button type="button" class="feature-cta-btn" data-trigger-waitlist>
+              <span>Richiedi prova gratuita</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+            </button>
+          </div>
 
-            <div
-              class="feature-step__visual"
-              role="img"
-              aria-label="Anteprima del diario guidato"
-            >
-              <div class="app-preview app-preview--journal" aria-hidden="true">
-                <div class="app-preview__bar">
-                  <i></i>
-                  <strong>Diario</strong>
-                  <span>Salva</span>
-                </div>
-                <div class="journal-meta">
-                  <span>Morning Reflection</span>
-                  <time>08:00</time>
-                </div>
-                <h4>Cosa merita la tua attenzione oggi?</h4>
-                <div class="journal-sheet">
-                  <p>Proteggere il primo blocco della giornata.</p>
-                  <i></i><i></i><i></i>
-                </div>
-                <div class="journal-tags">
-                  <span>Mente</span><span>Chiarezza</span><span>Presenza</span>
-                </div>
-              </div>
-            </div>
-          </li>
-
-          <li class="feature-step" id="fase-gamification">
-            <div class="feature-step__copy">
-              <p class="feature-step__label">
-                <span>04</span> Gamification
-              </p>
-              <h3>Rendi visibile ogni passo.</h3>
-              <p>
-                La gemma evolve con te. XP, livelli e continuità danno forma al
-                progresso senza trasformarlo in pressione.
-              </p>
-              <ul>
-                <li>Core personale, livelli e prossima evoluzione</li>
-                <li>Streak e ricompense per la costanza reale</li>
-              </ul>
-            </div>
-
-            <div
-              class="feature-step__visual"
-              role="img"
-              aria-label="Anteprima di livelli, esperienza e continuità"
-            >
-
-            </div>
-          </li>
-
-          <li class="feature-step" id="fase-blocker">
-            <div class="feature-step__copy">
-              <p class="feature-step__label">
-                <span>05</span> Dopamine blocker
-              </p>
-              <h3>Proteggi il focus quando serve.</h3>
-              <p>
-                Attiva uno scudo per app e siti distraenti. Il tempo torna alle
-                priorità scelte, senza affidarsi soltanto alla forza di volontà.
-              </p>
-              <ul>
-                <li>Sessioni protette con durata visibile</li>
-                <li>App e siti bloccati durante il lavoro profondo</li>
-              </ul>
-            </div>
-
-            <div
-              class="feature-step__visual"
-              role="img"
-              aria-label="Anteprima dello scudo concentrazione"
-            >
-              <div class="app-preview app-preview--blocker" aria-hidden="true">
-                <div class="app-preview__bar">
-                  <i></i>
-                  <strong>Scudo attivo</strong>
-                  <span>Disciplina</span>
-                </div>
-                <div class="shield-preview"><i></i></div>
-                <strong class="blocker-time">01:24:18</strong>
-                <p>Protezione fino alle 18:30</p>
-                <div class="focus-card">
-                  <span>Attività corrente</span>
-                  <strong>Lavoro profondo</strong>
-                </div>
-                <div class="blocked-summary">
-                  <span>7 App</span><span>3 Siti</span>
-                </div>
-              </div>
-            </div>
-          </li>
-
-          <li class="feature-step" id="fase-tempo">
-            <div class="feature-step__copy">
-              <p class="feature-step__label">
-                <span>06</span> Tempo intenzionale
-              </p>
-              <h3>Dai una funzione a ogni blocco.</h3>
-              <p>
-                La giornata diventa una sequenza leggibile di azione, focus e
-                recupero. Anche uno spazio vuoto può avere una direzione.
-              </p>
-              <ul>
-                <li>Percorso quotidiano con stato in tempo reale</li>
-                <li>Suggerimenti coerenti con energia e priorità</li>
-              </ul>
-            </div>
-
-            <div
-              class="feature-step__visual"
-              role="img"
-              aria-label="Anteprima del percorso quotidiano"
-            >
-              <div class="app-preview app-preview--timeline" aria-hidden="true">
-                <div class="app-preview__bar">
-                  <i></i>
-                  <strong>Il percorso di oggi</strong>
-                  <span>4 attività</span>
-                </div>
-                <div class="day-timeline">
-                  <div class="is-complete">
-                    <time>08:00</time><i></i>
-                    <span>
-                      <strong>Morning Reflection</strong>
-                      <small>Mente · Completato</small>
-                    </span>
-                  </div>
-                  <div class="is-active">
-                    <time>10:30</time><i></i>
-                    <span>
-                      <strong>Strength Training</strong>
-                      <small>Corpo · In corso</small>
-                    </span>
-                  </div>
-                  <div>
-                    <time>12:00</time><i></i>
-                    <span>
-                      <strong>No Fast Stimuli</strong>
-                      <small>Disciplina · In attesa</small>
-                    </span>
-                  </div>
-                  <div>
-                    <time>15:30</time><i></i>
-                    <span>
-                      <strong>Call Important Person</strong>
-                      <small>Relazioni · In attesa</small>
-                    </span>
+          <div class="feature-step__visual" role="img" aria-label="Anteprima di livelli, esperienza e continuità">
+            <div class="feature-phone-stage">
+              <div class="feature-phone-glow" aria-hidden="true"></div>
+              <article class="app-phone app-phone--feature" data-iphone-view="front">
+                <div class="app-phone__hardware">
+                  <div class="app-phone__screen app-screen">
+                    <img src="/iphone/placeholder-screen.png" alt="Schermata Gamification" class="feature-phone__screen-img" loading="lazy" />
                   </div>
                 </div>
-              </div>
+              </article>
+              <div class="feature-phone-fade" aria-hidden="true"></div>
             </div>
-          </li>
+          </div>
+        </li>
 
-          <li class="feature-step" id="fase-scheduling">
-            <div class="feature-step__copy">
-              <p class="feature-step__label">
-                <span>07</span> Scheduling avanzato
-              </p>
-              <h3>Costruisci un ritmo sostenibile.</h3>
-              <p>
-                Pianifica attività e pratiche considerando durata, frequenza,
-                energia e calendario. L’AI propone; tu mantieni il controllo.
-              </p>
-              <ul>
-                <li>Weekly preview e calendario delle attività</li>
-                <li>Orari consigliati in base a energia e impegni</li>
-              </ul>
+        <li class="feature-step" id="fase-blocker">
+          <div class="feature-step__copy">
+            <p class="feature-step__label">
+              <span>05</span> Dopamine blocker
+            </p>
+            <h3>Proteggi il focus quando serve.</h3>
+            <p>
+              Attiva uno scudo per app e siti distraenti. Il tempo torna alle
+              priorità scelte, senza affidarsi soltanto alla forza di volontà.
+            </p>
+            <ul>
+              <li>Sessioni protette con durata visibile</li>
+              <li>App e siti bloccati durante il lavoro profondo</li>
+            </ul>
+            <button type="button" class="feature-cta-btn" data-trigger-waitlist>
+              <span>Richiedi prova gratuita</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+            </button>
+          </div>
+
+          <div class="feature-step__visual" role="img" aria-label="Anteprima dello scudo concentrazione">
+            <div class="feature-phone-stage">
+              <div class="feature-phone-glow" aria-hidden="true"></div>
+              <article class="app-phone app-phone--feature" data-iphone-view="front">
+                <div class="app-phone__hardware">
+                  <div class="app-phone__screen app-screen">
+                    <img src="/iphone/placeholder-screen.png" alt="Schermata Dopamine Blocker" class="feature-phone__screen-img" loading="lazy" />
+                  </div>
+                </div>
+              </article>
+              <div class="feature-phone-fade" aria-hidden="true"></div>
             </div>
+          </div>
+        </li>
 
-            <div
-              class="feature-step__visual"
-              role="img"
-              aria-label="Anteprima della pianificazione intelligente"
-            >
-              <div class="app-preview app-preview--schedule" aria-hidden="true">
-                <div class="app-preview__bar">
-                  <i></i>
-                  <strong>Pianifica attività</strong>
-                  <span>Forza</span>
+        <li class="feature-step" id="fase-tempo">
+          <div class="feature-step__copy">
+            <p class="feature-step__label">
+              <span>06</span> Tempo intenzionale
+            </p>
+            <h3>Dai una funzione a ogni blocco.</h3>
+            <p>
+              La giornata diventa una sequenza leggibile di azione, focus e
+              recupero. Anche uno spazio vuoto può avere una direzione.
+            </p>
+            <ul>
+              <li>Percorso quotidiano con stato in tempo reale</li>
+              <li>Suggerimenti coerenti con energia e priorità</li>
+            </ul>
+            <button type="button" class="feature-cta-btn" data-trigger-waitlist>
+              <span>Richiedi prova gratuita</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+            </button>
+          </div>
+
+          <div class="feature-step__visual" role="img" aria-label="Anteprima del percorso quotidiano">
+            <div class="feature-phone-stage">
+              <div class="feature-phone-glow" aria-hidden="true"></div>
+              <article class="app-phone app-phone--feature" data-iphone-view="front">
+                <div class="app-phone__hardware">
+                  <div class="app-phone__screen app-screen">
+                    <img src="/iphone/placeholder-screen.png" alt="Schermata Tempo Intenzionale" class="feature-phone__screen-img" loading="lazy" />
+                  </div>
                 </div>
-                <div class="schedule-metrics">
-                  <span><strong>45</strong><small>min</small></span>
-                  <span><strong>3×</strong><small>settimana</small></span>
-                  <span><strong>Media</strong><small>energia</small></span>
-                </div>
-                <div class="ai-suggestion">
-                  <span>Oggi AI suggestion</span>
-                  <strong>Mar, Gio, Sab · 18:00</strong>
-                  <p>Minore probabilità di interruzione.</p>
-                </div>
-                <div class="week-preview">
-                  <span>Lun<small>12</small></span>
-                  <span class="is-planned">Mar<small>13</small></span>
-                  <span>Mer<small>14</small></span>
-                  <span class="is-planned">Gio<small>15</small></span>
-                  <span>Ven<small>16</small></span>
-                  <span class="is-planned">Sab<small>17</small></span>
-                </div>
-              </div>
+              </article>
+              <div class="feature-phone-fade" aria-hidden="true"></div>
             </div>
-          </li>
-        </ol>
-      </section>
+          </div>
+        </li>
 
-      <section class="closing">
-        <div class="closing__glow" aria-hidden="true"></div>
-        <div class="section-shell closing__content">
-          <p class="section-label">Non domani</p>
-          <h2>La tua prossima<br />versione inizia oggi.</h2>
-          <a class="primary-action" href="#inizio">Entra nell’orbita</a>
-        </div>
-      </section>
-    </main>
+        <li class="feature-step" id="fase-scheduling">
+          <div class="feature-step__copy">
+            <p class="feature-step__label">
+              <span>07</span> Scheduling avanzato
+            </p>
+            <h3>Costruisci un ritmo sostenibile.</h3>
+            <p>
+              Pianifica attività e pratiche considerando durata, frequenza,
+              energia e calendario. L’AI propone; tu mantieni il controllo.
+            </p>
+            <ul>
+              <li>Weekly preview e calendario delle attività</li>
+              <li>Orari consigliati in base a energia e impegni</li>
+            </ul>
+            <button type="button" class="feature-cta-btn" data-trigger-waitlist>
+              <span>Richiedi prova gratuita</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+            </button>
+          </div>
 
-    <footer class="footer section-shell">
-      <span class="footer__brand">CrystalLife</span>
-      <p>Disciplina senza rumore.</p>
-      <span>© 2026</span>
-    </footer>
+          <div class="feature-step__visual" role="img" aria-label="Anteprima della pianificazione intelligente">
+            <div class="feature-phone-stage">
+              <div class="feature-phone-glow" aria-hidden="true"></div>
+              <article class="app-phone app-phone--feature" data-iphone-view="front">
+                <div class="app-phone__hardware">
+                  <div class="app-phone__screen app-screen">
+                    <img src="/iphone/placeholder-screen.png" alt="Schermata Scheduling" class="feature-phone__screen-img" loading="lazy" />
+                  </div>
+                </div>
+              </article>
+              <div class="feature-phone-fade" aria-hidden="true"></div>
+            </div>
+          </div>
+        </li>
+      </ol>
+    </section>
 
-    <noscript>
-      <style>
-        .page-loader {
-          display: none !important;
-        }
+    <section class="closing">
+      <div class="closing__glow" aria-hidden="true"></div>
+      <div class="section-shell closing__content">
+        <p class="section-label">Non domani</p>
+        <h2>La tua prossima<br />versione inizia oggi.</h2>
+        <p class="closing-subtext">Sii tra i primi a provare Shard. Lascia la tua email per accedere alla prova gratuita al lancio dell'app.</p>
 
-        html.is-page-loading,
-        html.is-page-loading body {
-          overflow: auto !important;
-        }
-      </style>
-      <p class="noscript-message">
-        Attiva JavaScript per vedere l’esperienza orbitale.
-      </p>
-    </noscript>
+        <form class="email-form email-form--closing" data-email-form>
+          <div class="email-input-group">
+            <input type="email" class="email-input" data-email-input placeholder="Inserisci la tua email..." required autocomplete="email" />
+            <button type="submit" class="email-submit-btn">
+              <span>Provalo gratis</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+          <p class="email-status-msg" data-email-status aria-live="polite"></p>
+        </form>
+      </div>
+    </section>
+  </main>
 
-    <script type="module" src="/src/main.js"></script>
-  </body>
+  <footer class="footer section-shell">
+    <span class="footer__brand">Shard</span>
+    <p>Disciplina senza rumore.</p>
+    <span>© 2026</span>
+  </footer>
+
+  <noscript>
+    <style>
+      .page-loader {
+        display: none !important;
+      }
+
+      html.is-page-loading,
+      html.is-page-loading body {
+        overflow: auto !important;
+      }
+    </style>
+    <p class="noscript-message">
+      Attiva JavaScript per vedere l’esperienza Shard.
+    </p>
+  </noscript>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+
 </html>

@@ -31,6 +31,7 @@ import { GemInteractionController } from "./gem-interaction.js";
 import { HeroGemGallery } from "./hero-gem-gallery.js";
 import { HeroShowcase } from "./hero-showcase.js";
 import { initializeIPhoneShells } from "./iphone-shell.js";
+import { initializeEmailCapture } from "./email-capture.js";
 import { styleGemMaterials } from "./gem-materials.js";
 import { GemModelFactory } from "./gem-model.js";
 import { ModuleGemGallery } from "./module-gem-gallery.js";
@@ -52,6 +53,7 @@ const pageLoader = new PageLoader(
   document.querySelector("[data-page-loader]"),
 );
 const iPhoneShellsReady = initializeIPhoneShells();
+initializeEmailCapture();
 
 const spaceBackgroundCanvas = document.querySelector(
   "[data-space-background]",

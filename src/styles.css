@@ -2400,21 +2400,112 @@ h3 {
 .feature-step__visual {
   display: grid;
   min-width: 0;
-  min-height: 440px;
+  min-height: 480px;
   place-items: center;
   overflow: hidden;
-  padding: clamp(1rem, 2.4vw, 2rem);
+  padding: 0;
   border: 1px solid var(--border);
   border-radius: 2rem;
   background: #050506;
   transition:
     border-color 300ms ease,
-    transform 300ms ease;
+    transform 300ms ease,
+    box-shadow 300ms ease;
+  isolation: isolate;
 }
 
 .feature-step:hover .feature-step__visual {
-  border-color: rgba(208, 188, 255, 0.24);
+  border-color: rgba(208, 188, 255, 0.28);
   transform: translateY(-4px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(180, 140, 255, 0.08);
+}
+
+.feature-phone-stage {
+  position: relative;
+  width: 100%;
+  height: clamp(480px, 46vw, 580px);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow: hidden;
+  border-radius: 2rem;
+  background: radial-gradient(
+    circle at 50% 25%,
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(8, 8, 12, 0.95) 75%
+  );
+  padding-top: 0.85rem;
+}
+
+.feature-phone-glow {
+  position: absolute;
+  top: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 75%;
+  height: 65%;
+  background: radial-gradient(
+    circle,
+    rgba(170, 130, 255, 0.22) 0%,
+    rgba(100, 70, 220, 0.08) 50%,
+    transparent 80%
+  );
+  filter: blur(45px);
+  pointer-events: none;
+  transition: opacity 400ms ease, transform 400ms ease;
+  z-index: 0;
+}
+
+.feature-step:hover .feature-phone-glow {
+  opacity: 1;
+  transform: translateX(-50%) scale(1.15);
+}
+
+.app-phone--feature {
+  position: relative;
+  top: auto;
+  left: auto;
+  width: clamp(230px, 22vw, 270px);
+  aspect-ratio: 0.5;
+  transform: translateY(4px);
+  transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+  z-index: 2;
+  backface-visibility: hidden;
+}
+
+.feature-step:hover .app-phone--feature {
+  transform: translateY(-4px) scale(1.015);
+}
+
+.app-phone--feature.has-iphone-model .app-phone__screen {
+  border-radius: clamp(1.8rem, 2.5vw, 2.5rem);
+  overflow: hidden;
+}
+
+.feature-phone__screen-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  border-radius: clamp(1.75rem, 2.4vw, 2.45rem);
+  display: block;
+}
+
+.feature-phone-fade {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 35px;
+  background: linear-gradient(
+    to top,
+    #050506 0%,
+    rgba(5, 5, 6, 0.7) 40%,
+    rgba(5, 5, 6, 0) 100%
+  );
+  pointer-events: none;
+  z-index: 4;
 }
 
 .app-preview {
@@ -3525,17 +3616,19 @@ h3 {
 
   .feature-step__visual {
     min-height: 0;
-    padding: 0.65rem;
-    border-radius: 1.25rem;
+    padding: 0;
+    border-radius: 1.5rem;
   }
 
-  .app-preview {
-    padding: 1rem;
-    border-radius: 1rem;
+  .feature-phone-stage {
+    height: clamp(380px, 82vw, 460px);
+    padding-top: 0.65rem;
+    border-radius: 1.5rem;
   }
 
-  .app-preview__bar {
-    margin-bottom: 1rem;
+  .app-phone--feature {
+    width: clamp(190px, 50vw, 225px);
+    transform: translateY(4px);
   }
 
   .choice-grid span {
@@ -3607,5 +3700,254 @@ h3 {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* Email Capture Component — Minimalist Design */
+.hero-email-capture {
+  margin-top: 1.8rem;
+  max-width: 440px;
+  width: 100%;
+}
+
+.hero-email-header {
+  margin-bottom: 0.75rem;
+}
+
+.hero-email-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 2rem;
+  background: rgba(168, 85, 247, 0.12);
+  border: 1px solid rgba(192, 132, 252, 0.3);
+  color: #d8b4fe;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero-email-subtext,
+.closing-subtext {
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  margin-top: 0.35rem;
+}
+
+.closing-subtext {
+  max-width: 440px;
+  margin: 0.75rem auto 1.5rem;
+  text-align: center;
+}
+
+.email-form {
+  display: grid;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.email-form--closing {
+  max-width: 440px;
+  margin: 0 auto;
+}
+
+.email-input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 3rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 4px 4px 4px 16px;
+  transition: border-color 250ms ease, box-shadow 250ms ease, background 250ms ease;
+}
+
+.email-input-group:focus-within {
+  border-color: rgba(192, 132, 252, 0.7);
+  background: rgba(20, 16, 32, 0.9);
+  box-shadow: 0 0 24px rgba(168, 85, 247, 0.28);
+}
+
+.email-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 0.9rem;
+  padding: 0.45rem 0;
+}
+
+.email-input::placeholder {
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.email-input-group.is-pulsing,
+.hero-email-capture.is-pulsing {
+  animation: megaPulseGlow 2.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes megaPulseGlow {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(192, 132, 252, 0);
+  }
+  20% {
+    transform: scale(1.04);
+    box-shadow:
+      0 0 0 12px rgba(192, 132, 252, 0.65),
+      0 0 50px rgba(168, 85, 247, 0.95),
+      0 0 90px rgba(147, 51, 234, 0.6);
+    border-color: rgba(216, 180, 254, 1);
+    background: rgba(36, 20, 60, 0.95);
+  }
+  45% {
+    transform: scale(1.015);
+    box-shadow:
+      0 0 0 6px rgba(192, 132, 252, 0.4),
+      0 0 25px rgba(168, 85, 247, 0.7);
+    border-color: rgba(192, 132, 252, 0.85);
+  }
+  70% {
+    transform: scale(1.03);
+    box-shadow:
+      0 0 0 10px rgba(192, 132, 252, 0.55),
+      0 0 45px rgba(168, 85, 247, 0.85);
+    border-color: rgba(216, 180, 254, 0.95);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(192, 132, 252, 0);
+  }
+}
+
+.email-submit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1.15rem;
+  border-radius: 2rem;
+  background: linear-gradient(135deg, #a855f7, #6366f1);
+  border: none;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 200ms ease, box-shadow 200ms ease, opacity 200ms ease;
+  box-shadow: 0 4px 14px rgba(168, 85, 247, 0.35);
+}
+
+.email-submit-btn svg {
+  width: 15px;
+  height: 15px;
+  transition: transform 200ms ease;
+}
+
+.email-submit-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(168, 85, 247, 0.5);
+}
+
+.email-submit-btn:hover svg {
+  transform: translateX(3px);
+}
+
+.email-submit-btn.is-loading {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.email-status-msg {
+  font-size: 0.8rem;
+  margin-top: 0.35rem;
+  min-height: 1.2em;
+  transition: opacity 250ms ease;
+}
+
+.email-status-msg.is-success {
+  color: #4ade80;
+  font-weight: 500;
+}
+
+.email-status-msg.is-error {
+  color: #f87171;
+}
+
+.email-status-msg.is-pending {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Feature Step CTA Button */
+.feature-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.75rem;
+  padding: 0.65rem 1.15rem;
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.92);
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 250ms ease, border-color 250ms ease, transform 200ms ease;
+}
+
+.feature-cta-btn svg {
+  width: 15px;
+  height: 15px;
+  color: #c084fc;
+  transition: transform 200ms ease;
+}
+
+.feature-cta-btn:hover {
+  background: rgba(168, 85, 247, 0.12);
+  border-color: rgba(192, 132, 252, 0.4);
+  transform: translateY(-2px);
+}
+
+.feature-cta-btn:hover svg {
+  transform: translateY(-2px);
+}
+
+/* Mobile Responsive Adjustments for Email Component */
+@media (max-width: 540px) {
+  .hero-email-capture {
+    max-width: 100%;
+    margin-top: 1.4rem;
+  }
+
+  .email-input-group {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 6px;
+    border-radius: 1rem;
+    gap: 0.5rem;
+  }
+
+  .email-input {
+    width: 100%;
+    text-align: center;
+    padding: 0.6rem 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .email-submit-btn {
+    width: 100%;
+    justify-content: center;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
   }
 }
