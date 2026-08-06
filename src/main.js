@@ -444,7 +444,7 @@ scheduleIdleTask(initializeHeroGemGalleries);
           size: 0.46,
         },
         {
-          name: "Disciplina",
+          name: "Carattere",
           description:
             "Promesse mantenute, attenzione protetta e azioni che restano.",
           cssColor: "#f97316",
@@ -468,7 +468,7 @@ scheduleIdleTask(initializeHeroGemGalleries);
           size: 0.36,
         },
         {
-          name: "Crescita",
+          name: "Scopo",
           description:
             "Obiettivi leggibili e progresso continuo, senza rumore.",
           cssColor: "#3b82f6",
@@ -850,7 +850,7 @@ scheduleIdleTask(initializeHeroGemGalleries);
 
       const progress = clamp(
         (this.elapsedSeconds - this.hintStartedAt) /
-          GEM_HINT_DURATION_SECONDS,
+        GEM_HINT_DURATION_SECONDS,
       );
       const envelope = Math.sin(progress * Math.PI);
       const pulse = 0.72 + Math.sin(progress * Math.PI * 6) ** 2 * 0.28;
@@ -947,11 +947,11 @@ scheduleIdleTask(initializeHeroGemGalleries);
         );
         module.bloomGlow.scale.setScalar(
           definition.size *
-            lerp(
-              GEM_BLOOM_STYLE.restScale,
-              GEM_BLOOM_STYLE.activeScale,
-              hintStrength,
-            ),
+          lerp(
+            GEM_BLOOM_STYLE.restScale,
+            GEM_BLOOM_STYLE.activeScale,
+            hintStrength,
+          ),
         );
 
         if (!module.isDragging && !module.isStopped) {
@@ -1252,7 +1252,7 @@ scheduleIdleTask(initializeHeroGemGalleries);
 
       const progress = clamp(
         (window.innerHeight - rect.top) /
-          Math.max(this.element.offsetHeight, 1),
+        Math.max(this.element.offsetHeight, 1),
       );
       const exitVisibility = smoothstep(
         window.innerHeight * 0.52,

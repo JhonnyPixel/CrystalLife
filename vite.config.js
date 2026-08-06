@@ -15,8 +15,8 @@ const gemsDirectory = resolve(projectRoot, "public", "gems");
 const GEM_DIRECTORIES = Object.freeze({
   body: "corpo",
   center: "centro",
-  discipline: "disciplina",
-  growth: "crescita",
+  discipline: "carattere",
+  growth: "scopo",
   mind: "mente",
   relationships: "relazioni",
 });
@@ -104,7 +104,7 @@ const findGemAsset = (directoryName) => {
     (fileName) =>
       extname(fileName).toLowerCase() === ".bin" &&
       basename(fileName, extname(fileName)).toLowerCase() ===
-        basename(modelName, extname(modelName)).toLowerCase(),
+      basename(modelName, extname(modelName)).toLowerCase(),
   );
   const fallbackBinary = availableFiles.find(
     (fileName) => extname(fileName).toLowerCase() === ".bin",
