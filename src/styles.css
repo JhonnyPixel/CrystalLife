@@ -2492,6 +2492,11 @@ h3 {
   display: block;
 }
 
+.app-phone--feature.has-iphone-model .feature-phone__screen-img {
+  transform: scaleX(var(--iphone-screen-circle-correction));
+  transform-origin: center;
+}
+
 .feature-phone-fade {
   position: absolute;
   bottom: 0;
@@ -3468,8 +3473,16 @@ h3 {
   .showcase-story {
     --mobile-center-phone-scale: 0.66;
     --mobile-side-phone-scale: 0.57;
-    height: 175vh;
-    height: 175dvh;
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  .showcase-story__stage {
+    position: relative;
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
   }
 
   .orbit-story {
@@ -3479,14 +3492,17 @@ h3 {
 
   .showcase-story__layout {
     display: grid;
-    height: 100%;
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: auto clamp(360px, 110vw, 480px);
+    gap: 0.75rem;
     align-items: stretch;
     padding:
       max(1rem, calc(env(safe-area-inset-top) + 0.75rem))
       1.1rem
-      max(3rem, calc(env(safe-area-inset-bottom) + 2.5rem));
+      max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem));
   }
 
   .showcase-copy {
@@ -3527,7 +3543,7 @@ h3 {
   .showcase-visual {
     position: relative;
     inset: auto;
-    height: auto;
+    height: clamp(360px, 110vw, 480px);
     min-height: 0;
   }
 
@@ -3568,8 +3584,7 @@ h3 {
   }
 
   .showcase-scroll-cue {
-    bottom: max(0.6rem, env(safe-area-inset-bottom));
-    font-size: 0.47rem;
+    display: none;
   }
 
   .scroll-cue {
@@ -3621,14 +3636,14 @@ h3 {
   }
 
   .feature-phone-stage {
-    height: clamp(380px, 82vw, 460px);
+    height: clamp(420px, 120vw, 500px);
     padding-top: 0.65rem;
     border-radius: 1.5rem;
   }
 
   .app-phone--feature {
-    width: clamp(190px, 50vw, 225px);
-    transform: translateY(4px);
+    width: clamp(205px, 58vw, 245px);
+    transform: translateY(0);
   }
 
   .choice-grid span {
@@ -3658,11 +3673,6 @@ h3 {
 }
 
 @media (max-width: 560px), (hover: none) and (pointer: coarse) {
-  .showcase-story {
-    height: 100vh;
-    height: 100dvh;
-  }
-
   .orbit-canvas {
     clip-path: inset(
       var(--orbit-section-clip-top)
@@ -3671,6 +3681,13 @@ h3 {
       0
     );
     transition: none;
+  }
+}
+
+@media (min-width: 561px) and (hover: none) and (pointer: coarse) {
+  .showcase-story {
+    height: 100vh;
+    height: 100dvh;
   }
 }
 
