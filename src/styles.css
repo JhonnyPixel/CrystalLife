@@ -2497,6 +2497,10 @@ h3 {
   transform-origin: center;
 }
 
+.app-phone--feature.has-iphone-model .feature-phone__screen-img--gamification {
+  transform: scaleX(1.45);
+}
+
 .feature-phone-fade {
   position: absolute;
   bottom: 0;
