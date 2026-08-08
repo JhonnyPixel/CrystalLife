@@ -23,7 +23,7 @@ export async function onRequestPost(context) {
     // Basic email validation
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return new Response(
-        JSON.stringify({ success: false, error: "Indirizzo email non valido." }),
+        JSON.stringify({ success: false, error: "Please enter a valid email address." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -58,14 +58,14 @@ export async function onRequestPost(context) {
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Iscrizione completata con successo! Ti avviseremo al lancio di Shard.",
+        message: "You're on the list! We'll let you know when Shard launches.",
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error("Subscription Error:", err);
     return new Response(
-      JSON.stringify({ success: false, error: "Errore durante l'iscrizione. Riprova tra poco." }),
+      JSON.stringify({ success: false, error: "We couldn't complete your signup. Please try again shortly." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

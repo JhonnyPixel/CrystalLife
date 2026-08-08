@@ -32,7 +32,7 @@ class HeroGemPreview {
     this.createScene();
 
     if (!this.asset) {
-      throw new Error("Configurazione gemma hero incompleta.");
+      throw new Error("Incomplete hero gem configuration.");
     }
   }
 
@@ -156,7 +156,7 @@ export class HeroGemGallery {
         return;
       }
 
-      console.warn("Gemma 3D hero non disponibile.", result.reason);
+      console.warn("Hero 3D gem unavailable.", result.reason);
       this.previews[index].element.classList.add("is-fallback");
     });
     this.isLoaded = true;

@@ -294,7 +294,7 @@ export class GemInteractionController {
   playRelease(gemIndex) {
     this.sound.play(gemIndex, "release");
     this.announce(
-      `${this.modules[gemIndex].definition.name} di nuovo in orbita`,
+      `${this.modules[gemIndex].definition.name} returned to orbit`,
     );
   }
 

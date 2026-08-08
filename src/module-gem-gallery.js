@@ -128,7 +128,7 @@ class ModuleGemCard {
     this.angularVelocity = { x: 0, y: 0 };
 
     if (!this.modelUrl) {
-      throw new Error("Configurazione gemma modulo incompleta.");
+      throw new Error("Incomplete module gem configuration.");
     }
 
     this.postProcessing =
@@ -184,12 +184,12 @@ class ModuleGemCard {
 
   bindInteraction() {
     const moduleName =
-      this.element.querySelector("h3")?.textContent?.trim() ?? "modulo";
+      this.element.querySelector("h3")?.textContent?.trim() ?? "Module";
 
     this.element.tabIndex = 0;
     this.element.setAttribute(
       "aria-label",
-      `${moduleName}. Trascina per ruotare la gemma 3D.`,
+      `${moduleName}. Drag to rotate the 3D gem.`,
     );
     this.interactionElement.addEventListener(
       "pointerdown",
@@ -390,7 +390,7 @@ export class ModuleGemGallery {
     this.grid = elements[0]?.parentElement;
 
     if (!this.grid) {
-      throw new Error("Griglia moduli mancante.");
+      throw new Error("Missing module grid.");
     }
 
     this.isVisible = false;
@@ -468,7 +468,7 @@ export class ModuleGemGallery {
     results.forEach((result, index) => {
       if (result.status === "rejected") {
         console.warn(
-          "Gemma 3D della scheda non disponibile.",
+          "Card 3D gem unavailable.",
           this.cards[index].modelUrl,
           result.reason,
         );

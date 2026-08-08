@@ -1,6 +1,6 @@
 # CrystalLife
 
-Landing page Vite con esperienza orbitale Verge3D guidata dallo scroll.
+Vite landing page with a scroll-driven Verge3D orbital experience.
 
 ## Sviluppo
 

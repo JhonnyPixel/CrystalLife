@@ -12,7 +12,7 @@ const saveEmailLocally = (email) => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
     }
   } catch (err) {
-    console.warn("Impossibile salvare in localStorage", err);
+    console.warn("Unable to save to localStorage", err);
   }
 };
 
@@ -28,15 +28,15 @@ const sendSubscription = async (email) => {
 
     if (response.ok) {
       const data = await response.json();
-      return { success: true, message: data.message || "Sei registrato alla lista d'attesa di Shard!" };
+      return { success: true, message: data.message || "You're on the Shard waitlist!" };
     }
   } catch (err) {
-    console.log("Cloudflare endpoint non raggiungibile, salvato in locale.", err);
+    console.log("Cloudflare endpoint unavailable; saved locally.", err);
   }
 
   return {
     success: true,
-    message: "🎉 Perfetto! Ti abbiamo aggiunto tra i primi a provare Shard al lancio.",
+    message: "🎉 You're in! You'll be among the first to try Shard when it launches.",
   };
 };
 
@@ -90,7 +90,7 @@ export const initializeEmailCapture = () => {
       }
 
       if (status) {
-        status.textContent = "Invio in corso...";
+        status.textContent = "Submitting...";
         status.className = "email-status-msg is-pending";
       }
 
@@ -109,7 +109,7 @@ export const initializeEmailCapture = () => {
         }
       } else {
         if (status) {
-          status.textContent = result.message || "Qualcosa è andato storto. Riprova.";
+          status.textContent = result.message || "Something went wrong. Please try again.";
           status.className = "email-status-msg is-error";
         }
       }

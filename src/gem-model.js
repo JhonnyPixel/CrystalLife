@@ -145,7 +145,7 @@ const loadModel = (modelUrl, binaryUrl) => {
 export class GemModelFactory {
   constructor({ binaryUrl = null, modelUrl }) {
     if (!modelUrl) {
-      throw new Error("URL modello gemma mancante.");
+      throw new Error("Missing gem model URL.");
     }
 
     this.binaryUrl = binaryUrl;
@@ -180,7 +180,7 @@ export class GemModelFactory {
     }
 
     if (bounds.isEmpty()) {
-      throw new Error(`Nessuna mesh nel modello: ${this.modelUrl}`);
+      throw new Error(`No mesh found in model: ${this.modelUrl}`);
     }
 
     const size = bounds.getSize(new Vector3());
@@ -204,7 +204,7 @@ export class GemModelFactory {
 
   create({ size }) {
     if (!this.template) {
-      throw new Error("Modello gemma non ancora caricato.");
+      throw new Error("Gem model has not loaded yet.");
     }
 
     const model = this.template.clone(true);

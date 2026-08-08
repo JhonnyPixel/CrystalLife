@@ -72,7 +72,7 @@ if (heroOrbitElement) {
     heroOrbitPreview = new FeatureOrbitPreview(heroOrbitElement);
   } catch (error) {
     console.error(
-      "Impossibile inizializzare l'orbita della dashboard.",
+      "Unable to initialize the dashboard orbit.",
       error,
     );
     heroOrbitElement.classList.add("is-fallback");
@@ -93,7 +93,7 @@ const initializeHeroGemGalleries = () => {
     try {
       new HeroGemGallery(element);
     } catch (error) {
-      console.error("Impossibile inizializzare le gemme della hero.", error);
+      console.error("Unable to initialize the hero gems.", error);
     }
   });
 };
@@ -346,7 +346,7 @@ scheduleIdleTask(initializeHeroGemGalleries);
 
     async loadModels() {
       const tasks = [
-        { label: "Centro", run: () => this.loadCoreModel() },
+        { label: "Center", run: () => this.loadCoreModel() },
         ...this.modules.map((module) => ({
           label: module.definition.name,
           run: () => this.loadGemModel(module),
@@ -361,7 +361,7 @@ scheduleIdleTask(initializeHeroGemGalleries);
 
       failedTasks.forEach(({ result, task }) => {
         console.warn(
-          `Modello Verge3D "${task.label}" non disponibile.`,
+          `Verge3D model "${task.label}" unavailable.`,
           result.reason,
         );
       });
@@ -380,8 +380,8 @@ scheduleIdleTask(initializeHeroGemGalleries);
       this.loaderLabel.textContent =
         readyLabel ??
         (failedModelCount
-          ? "Orbita pronta con grafica semplificata"
-          : "Orbita pronta");
+          ? "Orbit ready with simplified graphics"
+          : "Orbit ready");
     }
 
     applyModelEnvironment(factory) {
@@ -420,9 +420,9 @@ scheduleIdleTask(initializeHeroGemGalleries);
     createModules() {
       const definitions = [
         {
-          name: "Mente",
+          name: "Mind",
           description:
-            "Chiarezza, journaling e spazio mentale per scegliere con intenzione.",
+            "Clarity, journaling, and mental space to make intentional choices.",
           cssColor: "#ef4444",
           color: 0xef4444,
           distance: 3.2,
@@ -432,9 +432,9 @@ scheduleIdleTask(initializeHeroGemGalleries);
           size: 0.52,
         },
         {
-          name: "Corpo",
+          name: "Body",
           description:
-            "Energia, allenamento e recupero come fondamenta quotidiane.",
+            "Energy, training, and recovery as your daily foundation.",
           cssColor: "#b6f34a",
           color: 0xb6f34a,
           distance: 3.9,
@@ -444,9 +444,9 @@ scheduleIdleTask(initializeHeroGemGalleries);
           size: 0.46,
         },
         {
-          name: "Carattere",
+          name: "Character",
           description:
-            "Promesse mantenute, attenzione protetta e azioni che restano.",
+            "Promises kept, focus protected, and actions that last.",
           cssColor: "#f97316",
           color: 0xf97316,
           distance: 4.6,
@@ -456,9 +456,9 @@ scheduleIdleTask(initializeHeroGemGalleries);
           size: 0.41,
         },
         {
-          name: "Relazioni",
+          name: "Relationships",
           description:
-            "Presenza reale e tempo di qualità per le persone che contano.",
+            "Real presence and quality time for the people who matter.",
           cssColor: "#ec4899",
           color: 0xec4899,
           distance: 5.3,
@@ -468,9 +468,9 @@ scheduleIdleTask(initializeHeroGemGalleries);
           size: 0.36,
         },
         {
-          name: "Scopo",
+          name: "Purpose",
           description:
-            "Obiettivi leggibili e progresso continuo, senza rumore.",
+            "Clear goals and steady progress, without the noise.",
           cssColor: "#3b82f6",
           color: 0x3b82f6,
           distance: 6,
@@ -1326,7 +1326,7 @@ scheduleIdleTask(initializeHeroGemGalleries);
   try {
     orbitExperience = new OrbitExperience(canvasElement);
   } catch (error) {
-    console.error("Impossibile inizializzare la scena 3D.", error);
+    console.error("Unable to initialize the 3D scene.", error);
     canvasElement.classList.add("is-fallback");
   }
 
@@ -1355,7 +1355,7 @@ scheduleIdleTask(initializeHeroGemGalleries);
         new ModuleGemGallery(moduleCardElements);
       } catch (error) {
         console.error(
-          "Impossibile inizializzare le gemme dei moduli.",
+          "Unable to initialize the module gems.",
           error,
         );
       }
@@ -1390,7 +1390,7 @@ scheduleIdleTask(initializeHeroGemGalleries);
         new FeatureOrbitPreview(featureOrbitElement);
       } catch (error) {
         console.error(
-          "Impossibile inizializzare l'orbita della funzionalità.",
+          "Unable to initialize the feature orbit.",
           error,
         );
         featureOrbitElement.classList.add("is-fallback");
